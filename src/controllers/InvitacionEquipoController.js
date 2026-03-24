@@ -1,4 +1,5 @@
 const db = require('../config/db');
+const socketManager = require('../sockets/socketManager');
 
 class InvitacionEquipoController {
     static async index(req, res) {
@@ -33,6 +34,8 @@ class InvitacionEquipoController {
                 INSERT INTO invitacionequipo (de_usuario_id, para_usuario_id, equipo_id, mensaje, estado, fecha_envio) 
                 VALUES (?, ?, ?, ?, 'pendiente', NOW())
             `, [req.user.id, data.para_usuario_id, data.equipo_id, data.mensaje || null]);
+
+            socketManager.notifyUser(data.para_usuario_id, 'nueva_notificacion');
 
             return res.status(201).json({ status: 201, message: 'Invitacion enviada' });
         } catch (error) {

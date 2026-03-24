@@ -226,6 +226,36 @@ const tables = [
         FOREIGN KEY (partido_siguiente_id) REFERENCES partidos(id) ON DELETE SET NULL
       ) ENGINE=InnoDB;
     `
+  },
+  {
+    name: 'Mensajes',
+    query: `
+      CREATE TABLE IF NOT EXISTS Mensajes (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        emisor_id INT NOT NULL,
+        receptor_id INT NULL,
+        equipo_id INT NULL,
+        mensaje TEXT NOT NULL,
+        leido TINYINT(1) DEFAULT 0,
+        fecha_envio DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (emisor_id) REFERENCES Usuario(id) ON DELETE CASCADE,
+        FOREIGN KEY (receptor_id) REFERENCES Usuario(id) ON DELETE CASCADE,
+        FOREIGN KEY (equipo_id) REFERENCES Equipo(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB;
+    `
+  },
+  {
+    name: 'EquipoChatLecturas',
+    query: `
+      CREATE TABLE IF NOT EXISTS EquipoChatLecturas (
+        usuario_id INT NOT NULL,
+        equipo_id INT NOT NULL,
+        ultima_lectura DATETIME DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (usuario_id, equipo_id),
+        FOREIGN KEY (usuario_id) REFERENCES Usuario(id) ON DELETE CASCADE,
+        FOREIGN KEY (equipo_id) REFERENCES Equipo(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB;
+    `
   }
 ];
 
