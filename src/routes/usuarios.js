@@ -10,4 +10,7 @@ router.put('/:id', UsuarioController.update);
 router.patch('/:id', UsuarioController.update);
 router.delete('/:id', UsuarioController.delete);
 
+// Registrar push token
+router.put('/update/push-token', authMiddleware, UsuarioController.updatePushToken);
+
 module.exports = router;

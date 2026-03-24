@@ -1,6 +1,7 @@
 const socketIo = require('socket.io');
 const jwt = require('jsonwebtoken');
 const db = require('../config/db'); // Needed to interact with the database if we want to save chat history directly via socket
+const { enviarPushNotification } = require('../utils/pushService');
 
 let io;
 // We map user IDs to socket IDs to easily lookup individual sockets (for Amigos or Notifications)
@@ -70,21 +71,35 @@ const init = (server) => {
                     [userId, data.receptor_id, data.mensaje]
                 );
 
+                const [senderRows] = await db.query('SELECT nombre FROM Usuario WHERE id = ?', [userId]);
+                const senderName = senderRows[0]?.nombre || 'Usuario';
+
                 const msgObj = {
                     id: result.insertId,
                     emisor_id: userId,
+                    emisor_nombre: senderName,
                     receptor_id: data.receptor_id,
                     mensaje: data.mensaje,
                     fecha_envio: new Date()
                 };
 
-                // Emit back to sender (to confirm and show in their UI if they sent it via generic event)
+                // Emit back to sender
                 socket.emit('receive_message_amigo', msgObj);
 
                 // Find recipient and emit
-                const destSocketId = connectedUsers.get(Number(data.receptor_id));
+                const destSocketId = connectedUsers.get(Number(data.receptor_id)) || connectedUsers.get(data.receptor_id.toString());
                 if (destSocketId) {
+                    console.log(`[Push] Usuario ${data.receptor_id} está CONECTADO por socket. No se envía push.`);
                     io.to(destSocketId).emit('receive_message_amigo', msgObj);
+                } else {
+                    // Si no está conectado por socket, enviar PUSH
+                    console.log(`[Push] Usuario ${data.receptor_id} DESCONECTADO. Intentando enviar Push Nativo.`);
+                    await enviarPushNotification(
+                        data.receptor_id, 
+                        `Nuevo mensaje de ${senderName}`, 
+                        data.mensaje,
+                        { type: 'amigo', id: userId, nombre: senderName }
+                    );
                 }
             } catch (err) {
                 console.error('[Sockets] Error en send_message_amigo:', err);
@@ -103,12 +118,17 @@ const init = (server) => {
                 );
 
                 const [userRows] = await db.query('SELECT nombre FROM Usuario WHERE id = ?', [userId]);
+                const [teamRows] = await db.query('SELECT nombre FROM Equipo WHERE id = ?', [data.equipo_id]);
+                
+                const senderName = userRows[0]?.nombre || 'Usuario';
+                const teamName = teamRows[0]?.nombre || 'Equipo';
 
                 const msgObj = {
                     id: result.insertId,
                     emisor_id: userId,
-                    emisor_nombre: userRows[0]?.nombre || 'Usuario',
+                    emisor_nombre: senderName,
                     equipo_id: data.equipo_id,
+                    equipo_nombre: teamName,
                     mensaje: data.mensaje,
                     fecha_envio: new Date()
                 };
@@ -118,6 +138,26 @@ const init = (server) => {
                 
                 // Broadcast to the rest of the team room
                 socket.to(`team_${data.equipo_id}`).emit('receive_message_equipo', msgObj);
+
+                // --- PUSH NOTIFICATIONS PARA MIEMBROS DESCONECTADOS ---
+                // Obtener todos los miembros del equipo (excepto yo)
+                const [members] = await db.query(`
+                    SELECT usuario_id FROM miembrosequipo WHERE equipo_id = ? AND activo = 1 AND usuario_id != ?
+                    UNION
+                    SELECT propietario_id as usuario_id FROM Equipo WHERE id = ? AND propietario_id != ?
+                `, [data.equipo_id, userId, data.equipo_id, userId]);
+
+                for (const member of members) {
+                    if (!connectedUsers.has(member.usuario_id) && !connectedUsers.has(member.usuario_id.toString())) {
+                        console.log(`[Push] Miembro equipo ${member.usuario_id} desconectado. Enviando Push.`);
+                        await enviarPushNotification(
+                            member.usuario_id,
+                            `Mensaje en ${teamName}`,
+                            `${senderName}: ${data.mensaje}`,
+                            { type: 'equipo', id: data.equipo_id, nombre: teamName }
+                        );
+                    }
+                }
             } catch (err) {
                 console.error('[Sockets] Error en send_message_equipo:', err);
             }
@@ -142,11 +182,21 @@ const getIo = () => {
 
 const getConnectedUsers = () => connectedUsers;
 
-const notifyUser = (userId, eventName, data = {}) => {
+const notifyUser = async (userId, eventName, data = {}) => {
     if (!io) return;
     const destSocketId = connectedUsers.get(Number(userId));
     if (destSocketId) {
         io.to(destSocketId).emit(eventName, data);
+    } else {
+        // Opcional: Si es una invitación o algo importante, mandar Push
+        if (eventName === 'nueva_notificacion') {
+            await enviarPushNotification(
+                userId,
+                'Nueva notificación en DeportProy',
+                'Tienes una nueva solicitud o invitación pendiente.',
+                { type: 'notificacion' }
+            );
+        }
     }
 };
 
