@@ -20,12 +20,14 @@ class EstadisticaController {
       const [equiposDb] = await db.query(
         `
                 SELECT DISTINCT e.id, e.nombre 
-                FROM partidos p
-                JOIN equipo e ON (e.id = p.equipo_local_id OR e.id = p.equipo_visitante_id)
-                WHERE p.fase_id = ? AND e.id IS NOT NULL
+                FROM equipo e
+                JOIN partidos p ON (e.id = p.equipo_local_id OR e.id = p.equipo_visitante_id)
+                WHERE p.fase_id = ?
             `,
         [fase_id],
       );
+      
+      console.log(`[Stats DEBUG] Fase ${fase_id}: ${partidos.length} partidos finalizados, ${equiposDb.length} equipos encontrados.`);
 
       equiposDb.forEach((e) => {
         stats[e.id] = {
@@ -90,6 +92,7 @@ class EstadisticaController {
         return b.gf - a.gf;
       });
 
+      console.log(`[Stats DEBUG] Tabla final enviada al cliente:`, JSON.stringify(tabla));
       return res.json({
         status: 200,
         message: "Tabla de posiciones",
