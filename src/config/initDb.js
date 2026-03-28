@@ -285,6 +285,18 @@ async function initDb() {
     {
       name: 'Add tipo to invitacioncampeonatos',
       query: "ALTER TABLE invitacioncampeonatos ADD COLUMN IF NOT EXISTS tipo ENUM('invitacion', 'solicitud_union') DEFAULT 'invitacion'"
+    },
+    {
+      name: 'Add lugar to partidos',
+      query: 'ALTER TABLE partidos ADD COLUMN IF NOT EXISTS lugar TEXT'
+    },
+    {
+      name: 'Add jornada to partidos',
+      query: 'ALTER TABLE partidos ADD COLUMN IF NOT EXISTS jornada INT DEFAULT 1'
+    },
+    {
+      name: 'Add creado_en to partidos',
+      query: 'ALTER TABLE partidos ADD COLUMN IF NOT EXISTS creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP'
     }
   ];
 

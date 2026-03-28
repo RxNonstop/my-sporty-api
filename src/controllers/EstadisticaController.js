@@ -50,37 +50,48 @@ class EstadisticaController {
         const gl = parseInt(p.puntos_local || 0);
         const gv = parseInt(p.puntos_visitante || 0);
 
-        if (local && stats[local] && visitante) {
+        if (local && stats[local]) {
           stats[local].pj++;
           stats[local].gf += gl;
           stats[local].gc += gv;
           stats[local].dg += gl - gv;
 
-          if (gl > gv) {
+          if (visitante) {
+            if (gl > gv) {
+              stats[local].pg++;
+              stats[local].pts += 3;
+            } else if (gl === gv) {
+              stats[local].pe++;
+              stats[local].pts += 1;
+            } else {
+              stats[local].pp++;
+            }
+          } else {
+            // BYE handles (usually 3 pts or just 0 pts but 1 PJ)
             stats[local].pg++;
             stats[local].pts += 3;
-          } else if (gl === gv) {
-            stats[local].pe++;
-            stats[local].pts += 1;
-          } else {
-            stats[local].pp++;
           }
         }
 
-        if (visitante && stats[visitante] && local) {
+        if (visitante && stats[visitante]) {
           stats[visitante].pj++;
           stats[visitante].gf += gv;
           stats[visitante].gc += gl;
           stats[visitante].dg += gv - gl;
 
-          if (gv > gl) {
+          if (local) {
+            if (gv > gl) {
+              stats[visitante].pg++;
+              stats[visitante].pts += 3;
+            } else if (gv === gl) {
+              stats[visitante].pe++;
+              stats[visitante].pts += 1;
+            } else {
+              stats[visitante].pp++;
+            }
+          } else {
             stats[visitante].pg++;
             stats[visitante].pts += 3;
-          } else if (gv === gl) {
-            stats[visitante].pe++;
-            stats[visitante].pts += 1;
-          } else {
-            stats[visitante].pp++;
           }
         }
       });
