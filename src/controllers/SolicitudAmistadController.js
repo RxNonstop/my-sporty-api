@@ -1,4 +1,5 @@
 const db = require('../config/db');
+const socketManager = require('../sockets/socketManager');
 
 class SolicitudAmistadController {
     static async index(req, res) {
@@ -46,6 +47,9 @@ class SolicitudAmistadController {
                 INSERT INTO SolicitudAmistad (de_usuario_id, para_usuario_id, estado, fecha_envio) 
                 VALUES (?, ?, 'pendiente', NOW())
             `, [de, para]);
+
+            // Emitir notificación vía Socket
+            socketManager.notifyUser(para, 'nueva_notificacion');
 
             return res.status(201).json({ status: 201, message: 'Solicitud enviada correctamente', data: null });
         } catch (error) {

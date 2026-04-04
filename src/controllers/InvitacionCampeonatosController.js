@@ -1,5 +1,6 @@
 const db = require('../config/db');
 const FixtureService = require('../services/FixtureService');
+const socketManager = require('../sockets/socketManager');
 
 class InvitacionCampeonatosController {
     static async index(req, res) {
@@ -31,6 +32,8 @@ class InvitacionCampeonatosController {
                 INSERT INTO invitacioncampeonatos (campeonato_id, equipo_id, de_usuario_id, para_usuario_id, mensaje, estado, tipo, fecha_envio) 
                 VALUES (?, ?, ?, ?, ?, 'pendiente', 'invitacion', NOW())
             `, [data.id_campeonato, data.equipo_id, req.user.id, data.id_usuario, data.mensaje || null]);
+
+            socketManager.notifyUser(data.id_usuario, 'nueva_notificacion');
 
             return res.status(201).json({ status: 201, message: 'Creado' });
         } catch (error) {
@@ -157,11 +160,12 @@ class InvitacionCampeonatosController {
                 return res.status(409).json({ status: 409, message: 'No hay cupos disponibles' });
             }
 
-            // Insert: from the requesting user TO the championship owner
             await db.query(`
                 INSERT INTO invitacioncampeonatos (campeonato_id, equipo_id, de_usuario_id, para_usuario_id, mensaje, estado, tipo, fecha_envio)
                 VALUES (?, ?, ?, ?, ?, 'pendiente', 'solicitud_union', NOW())
             `, [campeonato_id, equipo_id, req.user.id, camp.propietario_id, req.body.mensaje || null]);
+
+            socketManager.notifyUser(camp.propietario_id, 'nueva_notificacion');
 
             return res.status(201).json({ status: 201, message: 'Solicitud de unión enviada' });
         } catch (error) {

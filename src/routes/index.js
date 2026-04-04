@@ -14,6 +14,7 @@ const invitacionesEquipoRoutes = require('./invitaciones-equipo');
 const miembrosEquipoRoutes = require('./miembros-equipo');
 const invitacionesCampeonatosRoutes = require('./invitaciones-campeonatos');
 const miembrosCampeonatosRoutes = require('./miembros-campeonatos');
+const mensajesRoutes = require('./mensajes');
 
 router.use('/auth', authRoutes);
 router.use('/usuarios', usuariosRoutes);
@@ -28,5 +29,6 @@ router.use('/invitaciones-equipo', invitacionesEquipoRoutes);
 router.use('/miembros-equipo', miembrosEquipoRoutes);
 router.use('/invitaciones-campeonatos', invitacionesCampeonatosRoutes);
 router.use('/miembros-campeonatos', miembrosCampeonatosRoutes);
+router.use('/mensajes', mensajesRoutes);
 
 module.exports = router;

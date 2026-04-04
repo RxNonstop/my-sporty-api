@@ -166,6 +166,33 @@ class UsuarioController {
             });
         }
     }
+
+    static async updatePushToken(req, res) {
+        const { token } = req.body;
+        const userId = req.user.id; // Asumiendo que viene del middleware de auth
+
+        if (!token) {
+            return res.status(400).json({
+                status: 400,
+                message: 'No se proporcionó un token'
+            });
+        }
+
+        try {
+            console.log(`[Push] Intentando actualizar token para usuario ${userId}: ${token}`);
+            await db.query('UPDATE Usuario SET push_token = ? WHERE id = ?', [token, userId]);
+            return res.json({
+                status: 200,
+                message: 'Token de notificación actualizado correctamente'
+            });
+        } catch (error) {
+            return res.status(500).json({
+                status: 500,
+                message: 'Error al actualizar el token de notificación',
+                details: error.message
+            });
+        }
+    }
 }
 
 module.exports = UsuarioController;
