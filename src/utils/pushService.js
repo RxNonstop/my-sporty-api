@@ -13,7 +13,7 @@ let expo = new Expo();
 exports.enviarPushNotification = async (usuarioId, title, body, data = {}) => {
     try {
         // Obtener el push_token del usuario
-        const [rows] = await db.query('SELECT push_token FROM Usuario WHERE id = ?', [usuarioId]);
+        const [rows] = await db.query('SELECT push_token FROM usuario WHERE id = ?', [usuarioId]);
         
         if (rows.length === 0 || !rows[0].push_token) {
             return; // El usuario no tiene token registrado

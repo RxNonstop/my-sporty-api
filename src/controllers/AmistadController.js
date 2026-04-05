@@ -6,8 +6,8 @@ class AmistadController {
             const usuarioId = req.user.id;
             const [amigos] = await db.query(`
                 SELECT u.id, u.nombre, u.correo, u.url_foto_perfil
-                FROM Amistad a
-                JOIN Usuario u ON (
+                FROM amistad a
+                JOIN usuario u ON (
                     (a.usuario1_id = ? AND u.id = a.usuario2_id)
                     OR
                     (a.usuario2_id = ? AND u.id = a.usuario1_id)
@@ -26,13 +26,13 @@ class AmistadController {
             const usuarioId = req.user.id;
             const [equipos] = await db.query(`
                 SELECT DISTINCT e.id, e.nombre, e.descripcion, e.url_logo
-                FROM Amistad a
-                JOIN Usuario u ON (
+                FROM amistad a
+                JOIN usuario u ON (
                     (a.usuario1_id = ? AND u.id = a.usuario2_id)
                     OR
                     (a.usuario2_id = ? AND u.id = a.usuario1_id)
                 )
-                JOIN Equipo e ON u.id = e.propietario_id
+                JOIN equipo e ON u.id = e.propietario_id
                 WHERE a.activo = 1
             `, [usuarioId, usuarioId]);
 
@@ -63,17 +63,17 @@ class AmistadController {
         const u2 = Math.max(usuarioIdA, usuarioIdB);
 
         try {
-            const [existente] = await db.query('SELECT id FROM Amistad WHERE usuario1_id = ? AND usuario2_id = ? AND activo = 1', [u1, u2]);
+            const [existente] = await db.query('SELECT id FROM amistad WHERE usuario1_id = ? AND usuario2_id = ? AND activo = 1', [u1, u2]);
             if (existente.length > 0) {
                 return res.status(409).json({ status: 409, message: 'La amistad ya existe', data: null });
             }
 
             // Also check if they had a previous inactive friendship to reactivate, else insert
-            const [inactiva] = await db.query('SELECT id FROM Amistad WHERE usuario1_id = ? AND usuario2_id = ?', [u1, u2]);
+            const [inactiva] = await db.query('SELECT id FROM amistad WHERE usuario1_id = ? AND usuario2_id = ?', [u1, u2]);
             if (inactiva.length > 0) {
-                await db.query('UPDATE Amistad SET activo = 1 WHERE id = ?', [inactiva[0].id]);
+                await db.query('UPDATE amistad SET activo = 1 WHERE id = ?', [inactiva[0].id]);
             } else {
-                await db.query('INSERT INTO Amistad (usuario1_id, usuario2_id) VALUES (?, ?)', [u1, u2]);
+                await db.query('INSERT INTO amistad (usuario1_id, usuario2_id) VALUES (?, ?)', [u1, u2]);
             }
 
             return res.status(201).json({ status: 201, message: 'Amistad creada exitosamente', data: null });
@@ -91,7 +91,7 @@ class AmistadController {
         const u2 = Math.max(usuarioIdA, usuarioIdB);
 
         try {
-            const [result] = await db.query('UPDATE Amistad SET activo = 0 WHERE usuario1_id = ? AND usuario2_id = ? AND activo = 1', [u1, u2]);
+            const [result] = await db.query('UPDATE amistad SET activo = 0 WHERE usuario1_id = ? AND usuario2_id = ? AND activo = 1', [u1, u2]);
             if (result.affectedRows > 0) {
                 return res.json({ status: 200, message: 'Amistad eliminada correctamente', data: null });
             } else {

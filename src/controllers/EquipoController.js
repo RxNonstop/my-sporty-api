@@ -3,7 +3,7 @@ const db = require('../config/db');
 class EquipoController {
     static async index(req, res) {
         try {
-            const [equipos] = await db.query('SELECT * FROM Equipo');
+            const [equipos] = await db.query('SELECT * FROM equipo');
             return res.json({
                 status: 200,
                 message: 'Equipos obtenidos correctamente',
@@ -17,7 +17,7 @@ class EquipoController {
     static async show(req, res) {
         try {
             const id = req.params.id;
-            const [equipos] = await db.query('SELECT * FROM Equipo WHERE id = ?', [id]);
+            const [equipos] = await db.query('SELECT * FROM equipo WHERE id = ?', [id]);
             const equipo = equipos[0];
 
             if (equipo) {
@@ -34,10 +34,10 @@ class EquipoController {
         try {
             const usuarioId = req.user.id;
             
-            const [equiposPropietarios] = await db.query('SELECT * FROM Equipo WHERE propietario_id = ?', [usuarioId]);
+            const [equiposPropietarios] = await db.query('SELECT * FROM equipo WHERE propietario_id = ?', [usuarioId]);
             const [equiposMiembros] = await db.query(`
-                SELECT e.* FROM Equipo e
-                INNER JOIN miembrosequipo me ON e.id = me.equipo_id
+                SELECT e.* FROM equipo e
+                INNER JOIN miembros_equipo me ON e.id = me.equipo_id
                 WHERE me.usuario_id = ?
             `, [usuarioId]);
 
@@ -62,9 +62,9 @@ class EquipoController {
         try {
             const usuarioId = req.user.id;
             const [equipos] = await db.query(`
-                SELECT DISTINCT e.* FROM Equipo e
-                INNER JOIN MiembrosEquipo me ON e.id = me.equipo_id
-                INNER JOIN Amistad a ON (
+                SELECT DISTINCT e.* FROM equipo e
+                INNER JOIN miembros_equipo me ON e.id = me.equipo_id
+                INNER JOIN amistad a ON (
                     (a.usuario1_id = ? AND me.usuario_id = a.usuario2_id) OR
                     (a.usuario2_id = ? AND me.usuario_id = a.usuario1_id)
                 )
@@ -87,17 +87,17 @@ class EquipoController {
             const campeonatoId = req.params.campeonato_id;
 
             const [equipos] = await db.query(`
-                SELECT DISTINCT e.* FROM Equipo e
-                INNER JOIN Amistad a ON (
+                SELECT DISTINCT e.* FROM equipo e
+                INNER JOIN amistad a ON (
                     (a.usuario1_id = ? AND e.propietario_id = a.usuario2_id) OR
                     (a.usuario2_id = ? AND e.propietario_id = a.usuario1_id)
                 )
                 WHERE a.activo = 1
                 AND e.id NOT IN (
-                    SELECT equipo_id FROM miembroscampeonatos WHERE campeonato_id = ?
+                    SELECT equipo_id FROM miembros_campeonatos WHERE campeonato_id = ?
                 )
                 AND e.id NOT IN (
-                    SELECT equipo_id FROM invitacioncampeonatos WHERE campeonato_id = ? AND estado = 'pendiente'
+                    SELECT equipo_id FROM invitacion_campeonatos WHERE campeonato_id = ? AND estado = 'pendiente'
                 )
             `, [usuarioId, usuarioId, campeonatoId, campeonatoId]);
 
@@ -120,7 +120,7 @@ class EquipoController {
         try {
             const propietario_id = req.user.id;
             const [result] = await db.query(`
-                INSERT INTO Equipo (
+                INSERT INTO equipo (
                     nombre, descripcion, estadio_local,
                     ciudad, pais, url_logo, correo_contacto,
                     telefono_contacto, url_web, propietario_id, deporte
@@ -131,7 +131,7 @@ class EquipoController {
                 data.telefono_contacto || null, data.url_web || null, propietario_id, data.deporte
             ]);
 
-            const [equipos] = await db.query('SELECT * FROM Equipo WHERE id = ?', [result.insertId]);
+            const [equipos] = await db.query('SELECT * FROM equipo WHERE id = ?', [result.insertId]);
             return res.status(201).json({ status: 201, message: 'Equipo creado exitosamente', data: { equipo: equipos[0] } });
         } catch (error) {
             return res.status(500).json({ status: 500, message: 'Error al crear el equipo', data: { detalles: error.message } });
@@ -143,7 +143,7 @@ class EquipoController {
         const data = req.body;
 
         try {
-            const [equipos] = await db.query('SELECT * FROM Equipo WHERE id = ?', [id]);
+            const [equipos] = await db.query('SELECT * FROM equipo WHERE id = ?', [id]);
             const equipo = equipos[0];
 
             if (!equipo) {
@@ -155,7 +155,7 @@ class EquipoController {
             }
 
             await db.query(`
-                UPDATE Equipo SET
+                UPDATE equipo SET
                     nombre = COALESCE(?, nombre),
                     descripcion = COALESCE(?, descripcion),
                     estadio_local = COALESCE(?, estadio_local),
@@ -173,7 +173,7 @@ class EquipoController {
                 data.telefono_contacto, data.url_web, data.deporte, id
             ]);
 
-            const [updated] = await db.query('SELECT * FROM Equipo WHERE id = ?', [id]);
+            const [updated] = await db.query('SELECT * FROM equipo WHERE id = ?', [id]);
             return res.json({ status: 200, message: 'Equipo actualizado correctamente', data: { equipo: updated[0] } });
         } catch (error) {
             return res.status(500).json({ status: 500, message: 'Error al actualizar el equipo', data: { detalles: error.message } });
@@ -188,7 +188,7 @@ class EquipoController {
         }
 
         try {
-            const [equipos] = await db.query('SELECT * FROM Equipo WHERE nombre LIKE ?', [`%${nombre}%`]);
+            const [equipos] = await db.query('SELECT * FROM equipo WHERE nombre LIKE ?', [`%${nombre}%`]);
             return res.json({ status: 200, message: 'Equipos encontrados', data: { equipos } });
         } catch (error) {
             return res.status(500).json({ status: 500, message: 'Error al buscar equipos por nombre', data: { detalles: error.message } });
@@ -198,7 +198,7 @@ class EquipoController {
     static async delete(req, res) {
         const id = req.params.id;
         try {
-            const [equipos] = await db.query('SELECT * FROM Equipo WHERE id = ?', [id]);
+            const [equipos] = await db.query('SELECT * FROM equipo WHERE id = ?', [id]);
             const equipo = equipos[0];
 
             if (!equipo) {
@@ -209,7 +209,7 @@ class EquipoController {
                 return res.status(403).json({ status: 403, message: 'No tienes permiso para eliminar este equipo', data: null });
             }
 
-            await db.query('DELETE FROM Equipo WHERE id = ?', [id]);
+            await db.query('DELETE FROM equipo WHERE id = ?', [id]);
             return res.json({ status: 200, message: 'Equipo eliminado correctamente', data: null });
         } catch (error) {
             return res.status(500).json({ status: 500, message: 'Error al eliminar el equipo', data: { detalles: error.message } });

@@ -44,8 +44,8 @@ const init = (server) => {
         socket.on('join_teams', async () => {
              try {
                 // Fetch user's teams (both owned and memberships)
-                const [owned] = await db.query('SELECT id FROM Equipo WHERE propietario_id = ?', [userId]);
-                const [memberships] = await db.query('SELECT equipo_id as id FROM miembrosequipo WHERE usuario_id = ? AND activo = 1', [userId]);
+                const [owned] = await db.query('SELECT id FROM equipo WHERE propietario_id = ?', [userId]);
+                const [memberships] = await db.query('SELECT equipo_id as id FROM miembros_equipo WHERE usuario_id = ? AND activo = 1', [userId]);
                 
                 const allTeamIds = new Set([...owned.map(r => r.id), ...memberships.map(r => r.id)]);
                 
@@ -67,11 +67,11 @@ const init = (server) => {
                 
                 // Save to Database
                 const [result] = await db.query(
-                    'INSERT INTO Mensajes (emisor_id, receptor_id, mensaje) VALUES (?, ?, ?)',
+                    'INSERT INTO mensajes (emisor_id, receptor_id, mensaje) VALUES (?, ?, ?)',
                     [userId, data.receptor_id, data.mensaje]
                 );
 
-                const [senderRows] = await db.query('SELECT nombre FROM Usuario WHERE id = ?', [userId]);
+                const [senderRows] = await db.query('SELECT nombre FROM usuario WHERE id = ?', [userId]);
                 const senderName = senderRows[0]?.nombre || 'Usuario';
 
                 const msgObj = {
@@ -113,12 +113,12 @@ const init = (server) => {
             try {
                 // Save to Database
                 const [result] = await db.query(
-                    'INSERT INTO Mensajes (emisor_id, equipo_id, mensaje) VALUES (?, ?, ?)',
+                    'INSERT INTO mensajes (emisor_id, equipo_id, mensaje) VALUES (?, ?, ?)',
                     [userId, data.equipo_id, data.mensaje]
                 );
 
-                const [userRows] = await db.query('SELECT nombre FROM Usuario WHERE id = ?', [userId]);
-                const [teamRows] = await db.query('SELECT nombre FROM Equipo WHERE id = ?', [data.equipo_id]);
+                const [userRows] = await db.query('SELECT nombre FROM usuario WHERE id = ?', [userId]);
+                const [teamRows] = await db.query('SELECT nombre FROM equipo WHERE id = ?', [data.equipo_id]);
                 
                 const senderName = userRows[0]?.nombre || 'Usuario';
                 const teamName = teamRows[0]?.nombre || 'Equipo';
@@ -142,9 +142,9 @@ const init = (server) => {
                 // --- PUSH NOTIFICATIONS PARA MIEMBROS DESCONECTADOS ---
                 // Obtener todos los miembros del equipo (excepto yo)
                 const [members] = await db.query(`
-                    SELECT usuario_id FROM miembrosequipo WHERE equipo_id = ? AND activo = 1 AND usuario_id != ?
+                    SELECT usuario_id FROM miembros_equipo WHERE equipo_id = ? AND activo = 1 AND usuario_id != ?
                     UNION
-                    SELECT propietario_id as usuario_id FROM Equipo WHERE id = ? AND propietario_id != ?
+                    SELECT propietario_id as usuario_id FROM equipo WHERE id = ? AND propietario_id != ?
                 `, [data.equipo_id, userId, data.equipo_id, userId]);
 
                 for (const member of members) {

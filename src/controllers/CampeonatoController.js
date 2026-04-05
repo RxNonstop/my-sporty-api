@@ -3,7 +3,7 @@ const db = require('../config/db');
 class CampeonatoController {
     static async index(req, res) {
         try {
-            const [items] = await db.query('SELECT * FROM Campeonato');
+            const [items] = await db.query('SELECT * FROM campeonato');
             return res.json({ status: 200, message: 'Campeonatos obtenidos', data: items });
         } catch (error) {
             return res.status(500).json({ status: 500, message: 'Error al obtener campeonatos', details: error.message });
@@ -15,18 +15,18 @@ class CampeonatoController {
             const [items] = await db.query(`
                 SELECT c.*, 
                     e.nombre as campeon_nombre,
-                    (SELECT COUNT(*) FROM miembroscampeonatos mc WHERE mc.campeonato_id = c.id AND mc.activo = 1) as equipos_inscritos,
+                    (SELECT COUNT(*) FROM miembros_campeonatos mc WHERE mc.campeonato_id = c.id AND mc.activo = 1) as equipos_inscritos,
                     -- Check if user has a pending request for any of their teams
-                    (SELECT ic.id FROM invitacioncampeonatos ic JOIN equipo eq ON ic.equipo_id = eq.id WHERE ic.campeonato_id = c.id AND eq.propietario_id = ? AND ic.estado = 'pendiente' AND ic.tipo = 'solicitud_union' LIMIT 1) as solicitud_pendiente_id,
+                    (SELECT ic.id FROM invitacion_campeonatos ic JOIN equipo eq ON ic.equipo_id = eq.id WHERE ic.campeonato_id = c.id AND eq.propietario_id = ? AND ic.estado = 'pendiente' AND ic.tipo = 'solicitud_union' LIMIT 1) as solicitud_pendiente_id,
                     -- Check if user is already a member OF ANY team inscribed in this championship
-                    (SELECT eq.nombre FROM miembroscampeonatos mc 
+                    (SELECT eq.nombre FROM miembros_campeonatos mc 
                      JOIN equipo eq ON mc.equipo_id = eq.id 
-                     LEFT JOIN miembrosequipo me ON eq.id = me.equipo_id 
+                     LEFT JOIN miembros_equipo me ON eq.id = me.equipo_id 
                      WHERE mc.campeonato_id = c.id 
                        AND (eq.propietario_id = ? OR (me.usuario_id = ? AND me.activo = 1)) 
                        AND mc.activo = 1 
                      LIMIT 1) as equipo_inscrito_nombre
-                FROM Campeonato c
+                FROM campeonato c
                 LEFT JOIN equipo e ON c.campeon_id = e.id
                 WHERE c.privacidad = 'publico'
                 ORDER BY c.fecha_inicio DESC
@@ -39,7 +39,7 @@ class CampeonatoController {
 
     static async show(req, res) {
         try {
-            const [items] = await db.query('SELECT * FROM Campeonato WHERE id = ?', [req.params.id]);
+            const [items] = await db.query('SELECT * FROM campeonato WHERE id = ?', [req.params.id]);
             const item = items[0];
             if (item) {
                 return res.json({ status: 200, message: 'Campeonato obtenido', data: item });
@@ -58,7 +58,7 @@ class CampeonatoController {
         }
 
         try {
-            const [items] = await db.query('SELECT * FROM Campeonato WHERE propietario_id = ?', [propietarioId]);
+            const [items] = await db.query('SELECT * FROM campeonato WHERE propietario_id = ?', [propietarioId]);
             if (items.length > 0) {
                 return res.json({ status: 200, message: 'Campeonatos obtenidos por propietario', data: items });
             } else {
@@ -82,7 +82,7 @@ class CampeonatoController {
         }
 
         try {
-            const [items] = await db.query('SELECT * FROM Campeonato WHERE nombre LIKE ?', [`%${nombre}%`]);
+            const [items] = await db.query('SELECT * FROM campeonato WHERE nombre LIKE ?', [`%${nombre}%`]);
             if (items.length > 0) {
                 return res.json({ status: 200, message: 'Campeonatos encontrados', data: items });
             } else {
@@ -105,7 +105,7 @@ class CampeonatoController {
         }
 
         try {
-            const [items] = await db.query('SELECT * FROM Campeonato WHERE estado = ?', [estado]);
+            const [items] = await db.query('SELECT * FROM campeonato WHERE estado = ?', [estado]);
             if (items.length > 0) {
                 return res.json({ status: 200, message: 'Campeonatos obtenidos por estado', data: items });
             } else {
@@ -123,7 +123,7 @@ class CampeonatoController {
         }
 
         try {
-            const [items] = await db.query('SELECT * FROM Campeonato WHERE deporte = ?', [deporte]);
+            const [items] = await db.query('SELECT * FROM campeonato WHERE deporte = ?', [deporte]);
             if (items.length > 0) {
                 return res.json({ status: 200, message: 'Campeonatos obtenidos por deporte', data: items });
             } else {
@@ -171,7 +171,7 @@ class CampeonatoController {
                 : (data.privacidad === 'privado' ? 0 : 1);
 
             const [result] = await db.query(`
-                INSERT INTO Campeonato (
+                INSERT INTO campeonato (
                     nombre, descripcion, telefono_contacto, estado,
                     inscripciones_abiertas, fecha_inicio, fecha_fin,
                     deporte, numero_jugadores, numero_suplentes, numero_equipos,
@@ -193,7 +193,7 @@ class CampeonatoController {
                 data.privacidad || 'publico'
             ]);
 
-            const [items] = await db.query('SELECT * FROM Campeonato WHERE id = ?', [result.insertId]);
+            const [items] = await db.query('SELECT * FROM campeonato WHERE id = ?', [result.insertId]);
             return res.status(201).json({ status: 201, message: 'Campeonato creado', data: items[0] });
 
         } catch (error) {
@@ -207,7 +207,7 @@ class CampeonatoController {
             const data = req.body;
             if (!data) return res.status(400).json({ status: 400, message: 'Datos inválidos' });
 
-            const [items] = await db.query('SELECT * FROM Campeonato WHERE id = ?', [id]);
+            const [items] = await db.query('SELECT * FROM campeonato WHERE id = ?', [id]);
             const campeonato = items[0];
 
             if (!campeonato) return res.status(404).json({ status: 404, message: 'Campeonato no encontrado' });
@@ -220,7 +220,7 @@ class CampeonatoController {
             }
 
             await db.query(`
-                UPDATE Campeonato SET
+                UPDATE campeonato SET
                     nombre = COALESCE(?, nombre),
                     descripcion = COALESCE(?, descripcion),
                     telefono_contacto = COALESCE(?, telefono_contacto),
@@ -241,7 +241,7 @@ class CampeonatoController {
                 data.privacidad, id
             ]);
 
-            const [updatedItems] = await db.query('SELECT * FROM Campeonato WHERE id = ?', [id]);
+            const [updatedItems] = await db.query('SELECT * FROM campeonato WHERE id = ?', [id]);
             return res.json({ status: 200, message: 'Campeonato actualizado', data: updatedItems[0] });
         } catch (error) {
             return res.status(500).json({ status: 500, message: 'Error al actualizar campeonato', details: error.message });
@@ -255,7 +255,7 @@ class CampeonatoController {
         }
 
         try {
-            const [result] = await db.query('DELETE FROM Campeonato WHERE id = ?', [id]);
+            const [result] = await db.query('DELETE FROM campeonato WHERE id = ?', [id]);
             if (result.affectedRows > 0) {
                 return res.json({ status: 200, message: 'Campeonato eliminado' });
             } else {
@@ -275,10 +275,10 @@ class CampeonatoController {
         try {
             const query = `
                 SELECT DISTINCT c.*
-                FROM Campeonato c
-                JOIN miembroscampeonatos mc ON c.id = mc.campeonato_id
-                JOIN Equipo e ON mc.equipo_id = e.id
-                LEFT JOIN miembrosequipo me ON e.id = me.equipo_id
+                FROM campeonato c
+                JOIN miembros_campeonatos mc ON c.id = mc.campeonato_id
+                JOIN equipo e ON mc.equipo_id = e.id
+                LEFT JOIN miembros_equipo me ON e.id = me.equipo_id
                 WHERE (e.propietario_id = ? OR (me.usuario_id = ? AND me.activo = 1))
                   AND mc.activo = 1
             `;
