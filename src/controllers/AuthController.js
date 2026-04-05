@@ -17,7 +17,7 @@ class AuthController {
             const hashedPassword = await bcrypt.hash(data.password, 10);
             
             const [result] = await db.query(`
-                INSERT INTO Usuario (
+                INSERT INTO usuario (
                     nombre, cedula, sexo, fecha_nacimiento,
                     estado_salud, correo, password,
                     telefono, direccion, ciudad, pais,
@@ -30,7 +30,7 @@ class AuthController {
                 data.url_foto_perfil || null, data.rol || 'player'
             ]);
 
-            const [users] = await db.query('SELECT * FROM Usuario WHERE id = ?', [result.insertId]);
+            const [users] = await db.query('SELECT * FROM usuario WHERE id = ?', [result.insertId]);
             const usuario = users[0];
             delete usuario.password;
 
@@ -66,7 +66,7 @@ class AuthController {
         }
 
         try {
-            const [users] = await db.query('SELECT * FROM Usuario WHERE correo = ?', [correo]);
+            const [users] = await db.query('SELECT * FROM usuario WHERE correo = ?', [correo]);
             const usuario = users[0];
 
             if (!usuario) {
@@ -83,7 +83,7 @@ class AuthController {
                 });
             }
 
-            await db.query('UPDATE Usuario SET ultimo_login = NOW() WHERE id = ?', [usuario.id]);
+            await db.query('UPDATE usuario SET ultimo_login = NOW() WHERE id = ?', [usuario.id]);
 
             delete usuario.password;
 
@@ -116,7 +116,7 @@ class AuthController {
                 SELECT id, nombre, cedula, sexo, fecha_nacimiento,
                     estado_salud, correo, telefono, direccion, ciudad, pais,
                     url_foto_perfil, rol, fecha_registro, ultimo_login
-                FROM Usuario
+                FROM usuario
                 WHERE id = ?
             `, [userId]);
 

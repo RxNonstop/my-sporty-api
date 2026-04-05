@@ -10,7 +10,7 @@ class FixtureService {
 
             const [fases] = await connection.query('SELECT * FROM fases WHERE campeonato_id = ? ORDER BY orden ASC', [campeonato_id]);
             
-            const [equipos] = await connection.query('SELECT equipo_id FROM miembroscampeonatos WHERE campeonato_id = ? AND activo = 1', [campeonato_id]);
+            const [equipos] = await connection.query('SELECT equipo_id FROM miembros_campeonatos WHERE campeonato_id = ? AND activo = 1', [campeonato_id]);
             const teamIds = equipos.map(e => e.equipo_id);
 
             let currentTeams = [...teamIds];

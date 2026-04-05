@@ -6,9 +6,9 @@ class InvitacionEquipoController {
         try {
             const [invitaciones] = await db.query(`
                 SELECT ie.*, u.nombre as de_usuario_nombre, e.nombre as equipo_nombre 
-                FROM invitacionequipo ie 
-                JOIN Usuario u ON ie.de_usuario_id = u.id 
-                JOIN Equipo e ON ie.equipo_id = e.id 
+                FROM invitacion_equipo ie 
+                JOIN usuario u ON ie.de_usuario_id = u.id 
+                JOIN equipo e ON ie.equipo_id = e.id 
                 WHERE ie.para_usuario_id = ? AND ie.estado = 'pendiente'
             `, [req.user.id]);
             return res.json({ status: 200, message: 'Invitaciones obtenidas', data: { invitaciones } });
@@ -27,11 +27,11 @@ class InvitacionEquipoController {
                 return res.status(400).json({ status: 400, message: 'No puedes invitarte a ti mismo' });
             }
 
-            const [existente] = await db.query('SELECT * FROM invitacionequipo WHERE para_usuario_id = ? AND equipo_id = ? AND estado = "pendiente"', [data.para_usuario_id, data.equipo_id]);
+            const [existente] = await db.query('SELECT * FROM invitacion_equipo WHERE para_usuario_id = ? AND equipo_id = ? AND estado = "pendiente"', [data.para_usuario_id, data.equipo_id]);
             if (existente.length > 0) return res.status(409).json({ status: 409, message: 'La invitación ya existe', data: null });
 
             await db.query(`
-                INSERT INTO invitacionequipo (de_usuario_id, para_usuario_id, equipo_id, mensaje, estado, fecha_envio) 
+                INSERT INTO invitacion_equipo (de_usuario_id, para_usuario_id, equipo_id, mensaje, estado, fecha_envio) 
                 VALUES (?, ?, ?, ?, 'pendiente', NOW())
             `, [req.user.id, data.para_usuario_id, data.equipo_id, data.mensaje || null]);
 
@@ -56,22 +56,22 @@ class InvitacionEquipoController {
 
             await connection.beginTransaction();
 
-            const [invCheck] = await connection.query('SELECT * FROM invitacionequipo WHERE id = ? AND para_usuario_id = ?', [id, req.user.id]);
+            const [invCheck] = await connection.query('SELECT * FROM invitacion_equipo WHERE id = ? AND para_usuario_id = ?', [id, req.user.id]);
             if (!invCheck[0]) {
                 await connection.rollback();
                 return res.status(404).json({ status: 404, message: 'No encontrado' });
             }
 
             if (estado === 'aceptado') {
-                const [miembroExistente] = await connection.query('SELECT * FROM miembrosequipo WHERE usuario_id = ? AND equipo_id = ?', [req.user.id, invCheck[0].equipo_id]);
+                const [miembroExistente] = await connection.query('SELECT * FROM miembros_equipo WHERE usuario_id = ? AND equipo_id = ?', [req.user.id, invCheck[0].equipo_id]);
                 if (miembroExistente.length > 0) {
-                    await connection.query('UPDATE miembrosequipo SET activo = 1 WHERE id = ?', [miembroExistente[0].id]);
+                    await connection.query('UPDATE miembros_equipo SET activo = 1 WHERE id = ?', [miembroExistente[0].id]);
                 } else {
-                    await connection.query('INSERT INTO miembrosequipo (usuario_id, equipo_id, rol_usuario, activo) VALUES (?, ?, "jugador", 1)', [req.user.id, invCheck[0].equipo_id]);
+                    await connection.query('INSERT INTO miembros_equipo (usuario_id, equipo_id, rol_usuario, activo) VALUES (?, ?, "jugador", 1)', [req.user.id, invCheck[0].equipo_id]);
                 }
             }
 
-            await connection.query('DELETE FROM invitacionequipo WHERE id = ?', [id]);
+            await connection.query('DELETE FROM invitacion_equipo WHERE id = ?', [id]);
             
             await connection.commit();
             return res.json({ status: 200, message: 'Invitación procesada', data: null });
@@ -85,7 +85,7 @@ class InvitacionEquipoController {
 
     static async delete(req, res) {
         try {
-            const [result] = await db.query('DELETE FROM invitacionequipo WHERE id = ? AND para_usuario_id = ?', [req.params.id, req.user.id]);
+            const [result] = await db.query('DELETE FROM invitacion_equipo WHERE id = ? AND para_usuario_id = ?', [req.params.id, req.user.id]);
             if (result.affectedRows > 0) return res.json({ status: 200, message: 'Eliminado' });
             return res.status(404).json({ status: 404, message: 'No encontrado' });
         } catch (error) {

@@ -2,9 +2,9 @@ const db = require('./db');
 
 const tables = [
   {
-    name: 'Usuario',
+    name: 'usuario',
     query: `
-      CREATE TABLE IF NOT EXISTS Usuario (
+      CREATE TABLE IF NOT EXISTS usuario (
         id INT AUTO_INCREMENT PRIMARY KEY,
         nombre VARCHAR(255) NOT NULL,
         cedula VARCHAR(50) NOT NULL UNIQUE,
@@ -27,39 +27,39 @@ const tables = [
     `
   },
   {
-    name: 'Amistad',
+    name: 'amistad',
     query: `
-      CREATE TABLE IF NOT EXISTS Amistad (
+      CREATE TABLE IF NOT EXISTS amistad (
         id INT AUTO_INCREMENT PRIMARY KEY,
         usuario1_id INT NOT NULL,
         usuario2_id INT NOT NULL,
         activo TINYINT(1) DEFAULT 1,
         fecha_inicio DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (usuario1_id) REFERENCES Usuario(id) ON DELETE CASCADE,
-        FOREIGN KEY (usuario2_id) REFERENCES Usuario(id) ON DELETE CASCADE,
+        FOREIGN KEY (usuario1_id) REFERENCES usuario(id) ON DELETE CASCADE,
+        FOREIGN KEY (usuario2_id) REFERENCES usuario(id) ON DELETE CASCADE,
         UNIQUE KEY unique_friendship (usuario1_id, usuario2_id)
       ) ENGINE=InnoDB;
     `
   },
   {
-    name: 'SolicitudAmistad',
+    name: 'solicitud_amistad',
     query: `
-      CREATE TABLE IF NOT EXISTS SolicitudAmistad (
+      CREATE TABLE IF NOT EXISTS solicitud_amistad (
         id INT AUTO_INCREMENT PRIMARY KEY,
         de_usuario_id INT NOT NULL,
         para_usuario_id INT NOT NULL,
         estado ENUM('pendiente', 'aceptado', 'rechazado') DEFAULT 'pendiente',
         fecha_envio DATETIME DEFAULT CURRENT_TIMESTAMP,
         fecha_respuesta DATETIME,
-        FOREIGN KEY (de_usuario_id) REFERENCES Usuario(id) ON DELETE CASCADE,
-        FOREIGN KEY (para_usuario_id) REFERENCES Usuario(id) ON DELETE CASCADE
+        FOREIGN KEY (de_usuario_id) REFERENCES usuario(id) ON DELETE CASCADE,
+        FOREIGN KEY (para_usuario_id) REFERENCES usuario(id) ON DELETE CASCADE
       ) ENGINE=InnoDB;
     `
   },
   {
-    name: 'Equipo',
+    name: 'equipo',
     query: `
-      CREATE TABLE IF NOT EXISTS Equipo (
+      CREATE TABLE IF NOT EXISTS equipo (
         id INT AUTO_INCREMENT PRIMARY KEY,
         nombre VARCHAR(255) NOT NULL,
         descripcion TEXT,
@@ -74,30 +74,30 @@ const tables = [
         deporte VARCHAR(100) NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        FOREIGN KEY (propietario_id) REFERENCES Usuario(id) ON DELETE CASCADE
+        FOREIGN KEY (propietario_id) REFERENCES usuario(id) ON DELETE CASCADE
       ) ENGINE=InnoDB;
     `
   },
   {
-    name: 'miembrosequipo',
+    name: 'miembros_equipo',
     query: `
-      CREATE TABLE IF NOT EXISTS miembrosequipo (
+      CREATE TABLE IF NOT EXISTS miembros_equipo (
         id INT AUTO_INCREMENT PRIMARY KEY,
         usuario_id INT NOT NULL,
         equipo_id INT NOT NULL,
         rol_usuario ENUM('jugador', 'capitan', 'entrenador') DEFAULT 'jugador',
         activo TINYINT(1) DEFAULT 1,
         fecha_union DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (usuario_id) REFERENCES Usuario(id) ON DELETE CASCADE,
-        FOREIGN KEY (equipo_id) REFERENCES Equipo(id) ON DELETE CASCADE,
+        FOREIGN KEY (usuario_id) REFERENCES usuario(id) ON DELETE CASCADE,
+        FOREIGN KEY (equipo_id) REFERENCES equipo(id) ON DELETE CASCADE,
         UNIQUE KEY unique_member (usuario_id, equipo_id)
       ) ENGINE=InnoDB;
     `
   },
   {
-    name: 'invitacionequipo',
+    name: 'invitacion_equipo',
     query: `
-      CREATE TABLE IF NOT EXISTS invitacionequipo (
+      CREATE TABLE IF NOT EXISTS invitacion_equipo (
         id INT AUTO_INCREMENT PRIMARY KEY,
         de_usuario_id INT NOT NULL,
         para_usuario_id INT NOT NULL,
@@ -105,16 +105,16 @@ const tables = [
         mensaje TEXT,
         estado ENUM('pendiente', 'aceptado', 'rechazado') DEFAULT 'pendiente',
         fecha_envio DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (de_usuario_id) REFERENCES Usuario(id) ON DELETE CASCADE,
-        FOREIGN KEY (para_usuario_id) REFERENCES Usuario(id) ON DELETE CASCADE,
-        FOREIGN KEY (equipo_id) REFERENCES Equipo(id) ON DELETE CASCADE
+        FOREIGN KEY (de_usuario_id) REFERENCES usuario(id) ON DELETE CASCADE,
+        FOREIGN KEY (para_usuario_id) REFERENCES usuario(id) ON DELETE CASCADE,
+        FOREIGN KEY (equipo_id) REFERENCES equipo(id) ON DELETE CASCADE
       ) ENGINE=InnoDB;
     `
   },
   {
-    name: 'Campeonato',
+    name: 'campeonato',
     query: `
-      CREATE TABLE IF NOT EXISTS Campeonato (
+      CREATE TABLE IF NOT EXISTS campeonato (
         id INT AUTO_INCREMENT PRIMARY KEY,
         nombre VARCHAR(255) NOT NULL,
         descripcion TEXT,
@@ -132,30 +132,30 @@ const tables = [
         campeon_id INT DEFAULT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        FOREIGN KEY (propietario_id) REFERENCES Usuario(id) ON DELETE CASCADE,
-        FOREIGN KEY (campeon_id) REFERENCES Equipo(id) ON DELETE SET NULL
+        FOREIGN KEY (propietario_id) REFERENCES usuario(id) ON DELETE CASCADE,
+        FOREIGN KEY (campeon_id) REFERENCES equipo(id) ON DELETE SET NULL
       ) ENGINE=InnoDB;
     `
   },
   {
-    name: 'miembroscampeonatos',
+    name: 'miembros_campeonatos',
     query: `
-      CREATE TABLE IF NOT EXISTS miembroscampeonatos (
+      CREATE TABLE IF NOT EXISTS miembros_campeonatos (
         id INT AUTO_INCREMENT PRIMARY KEY,
         campeonato_id INT NOT NULL,
         equipo_id INT NOT NULL,
         activo TINYINT(1) DEFAULT 1,
         fecha_ingreso DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (campeonato_id) REFERENCES Campeonato(id) ON DELETE CASCADE,
-        FOREIGN KEY (equipo_id) REFERENCES Equipo(id) ON DELETE CASCADE,
+        FOREIGN KEY (campeonato_id) REFERENCES campeonato(id) ON DELETE CASCADE,
+        FOREIGN KEY (equipo_id) REFERENCES equipo(id) ON DELETE CASCADE,
         UNIQUE KEY unique_entry (campeonato_id, equipo_id)
       ) ENGINE=InnoDB;
     `
   },
   {
-    name: 'invitacioncampeonatos',
+    name: 'invitacion_campeonatos',
     query: `
-      CREATE TABLE IF NOT EXISTS invitacioncampeonatos (
+      CREATE TABLE IF NOT EXISTS invitacion_campeonatos (
         id INT AUTO_INCREMENT PRIMARY KEY,
         campeonato_id INT NOT NULL,
         equipo_id INT NOT NULL,
@@ -165,10 +165,10 @@ const tables = [
         estado ENUM('pendiente', 'aceptado', 'rechazado') DEFAULT 'pendiente',
         tipo ENUM('invitacion', 'solicitud_union') DEFAULT 'invitacion',
         fecha_envio DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (campeonato_id) REFERENCES Campeonato(id) ON DELETE CASCADE,
-        FOREIGN KEY (equipo_id) REFERENCES Equipo(id) ON DELETE CASCADE,
-        FOREIGN KEY (de_usuario_id) REFERENCES Usuario(id) ON DELETE CASCADE,
-        FOREIGN KEY (para_usuario_id) REFERENCES Usuario(id) ON DELETE CASCADE
+        FOREIGN KEY (campeonato_id) REFERENCES campeonato(id) ON DELETE CASCADE,
+        FOREIGN KEY (equipo_id) REFERENCES equipo(id) ON DELETE CASCADE,
+        FOREIGN KEY (de_usuario_id) REFERENCES usuario(id) ON DELETE CASCADE,
+        FOREIGN KEY (para_usuario_id) REFERENCES usuario(id) ON DELETE CASCADE
       ) ENGINE=InnoDB;
     `
   },
@@ -186,7 +186,7 @@ const tables = [
         fecha_fin DATE,
         numero_equipos INT,
         actualizado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        FOREIGN KEY (campeonato_id) REFERENCES Campeonato(id) ON DELETE CASCADE
+        FOREIGN KEY (campeonato_id) REFERENCES campeonato(id) ON DELETE CASCADE
       ) ENGINE=InnoDB;
     `
   },
@@ -221,16 +221,16 @@ const tables = [
         actualizado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         FOREIGN KEY (fase_id) REFERENCES fases(id) ON DELETE CASCADE,
         FOREIGN KEY (escenario_id) REFERENCES escenarios_deportivos(id) ON DELETE SET NULL,
-        FOREIGN KEY (equipo_local_id) REFERENCES Equipo(id) ON DELETE CASCADE,
-        FOREIGN KEY (equipo_visitante_id) REFERENCES Equipo(id) ON DELETE CASCADE,
+        FOREIGN KEY (equipo_local_id) REFERENCES equipo(id) ON DELETE CASCADE,
+        FOREIGN KEY (equipo_visitante_id) REFERENCES equipo(id) ON DELETE CASCADE,
         FOREIGN KEY (partido_siguiente_id) REFERENCES partidos(id) ON DELETE SET NULL
       ) ENGINE=InnoDB;
     `
   },
   {
-    name: 'Mensajes',
+    name: 'mensajes',
     query: `
-      CREATE TABLE IF NOT EXISTS Mensajes (
+      CREATE TABLE IF NOT EXISTS mensajes (
         id INT AUTO_INCREMENT PRIMARY KEY,
         emisor_id INT NOT NULL,
         receptor_id INT NULL,
@@ -238,22 +238,22 @@ const tables = [
         mensaje TEXT NOT NULL,
         leido TINYINT(1) DEFAULT 0,
         fecha_envio DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (emisor_id) REFERENCES Usuario(id) ON DELETE CASCADE,
-        FOREIGN KEY (receptor_id) REFERENCES Usuario(id) ON DELETE CASCADE,
-        FOREIGN KEY (equipo_id) REFERENCES Equipo(id) ON DELETE CASCADE
+        FOREIGN KEY (emisor_id) REFERENCES usuario(id) ON DELETE CASCADE,
+        FOREIGN KEY (receptor_id) REFERENCES usuario(id) ON DELETE CASCADE,
+        FOREIGN KEY (equipo_id) REFERENCES equipo(id) ON DELETE CASCADE
       ) ENGINE=InnoDB;
     `
   },
   {
-    name: 'EquipoChatLecturas',
+    name: 'equipo_chat_lecturas',
     query: `
-      CREATE TABLE IF NOT EXISTS EquipoChatLecturas (
+      CREATE TABLE IF NOT EXISTS equipo_chat_lecturas (
         usuario_id INT NOT NULL,
         equipo_id INT NOT NULL,
         ultima_lectura DATETIME DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (usuario_id, equipo_id),
-        FOREIGN KEY (usuario_id) REFERENCES Usuario(id) ON DELETE CASCADE,
-        FOREIGN KEY (equipo_id) REFERENCES Equipo(id) ON DELETE CASCADE
+        FOREIGN KEY (usuario_id) REFERENCES usuario(id) ON DELETE CASCADE,
+        FOREIGN KEY (equipo_id) REFERENCES equipo(id) ON DELETE CASCADE
       ) ENGINE=InnoDB;
     `
   }
@@ -274,17 +274,17 @@ async function initDb() {
   console.log('Iniciando migraciones incrementales...');
   const migrations = [
     {
-      name: 'Add campeon_id to Campeonato',
-      query: 'ALTER TABLE Campeonato ADD COLUMN IF NOT EXISTS campeon_id INT NULL'
+      name: 'Add campeon_id to campeonato',
+      query: 'ALTER TABLE campeonato ADD COLUMN IF NOT EXISTS campeon_id INT NULL'
     },
     {
-      name: 'Add fk_campeon_equipo to Campeonato',
-      query: 'ALTER TABLE Campeonato ADD CONSTRAINT fk_campeon_equipo FOREIGN KEY (campeon_id) REFERENCES Equipo(id) ON DELETE SET NULL',
+      name: 'Add fk_campeon_equipo to campeonato',
+      query: 'ALTER TABLE campeonato ADD CONSTRAINT fk_campeon_equipo FOREIGN KEY (campeon_id) REFERENCES equipo(id) ON DELETE SET NULL',
       ignoreError: true
     },
     {
-      name: 'Add tipo to invitacioncampeonatos',
-      query: "ALTER TABLE invitacioncampeonatos ADD COLUMN IF NOT EXISTS tipo ENUM('invitacion', 'solicitud_union') DEFAULT 'invitacion'"
+      name: 'Add tipo to invitacion_campeonatos',
+      query: "ALTER TABLE invitacion_campeonatos ADD COLUMN IF NOT EXISTS tipo ENUM('invitacion', 'solicitud_union') DEFAULT 'invitacion'"
     },
     {
       name: 'Add lugar to partidos',

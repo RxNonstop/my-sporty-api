@@ -4,7 +4,7 @@ const bcrypt = require('bcryptjs');
 class UsuarioController {
     static async index(req, res) {
         try {
-            const [usuarios] = await db.query('SELECT * FROM Usuario');
+            const [usuarios] = await db.query('SELECT * FROM usuario');
             return res.json({
                 status: 200,
                 message: 'Usuarios obtenidos correctamente',
@@ -21,7 +21,7 @@ class UsuarioController {
 
     static async show(req, res) {
         try {
-            const [users] = await db.query('SELECT * FROM Usuario WHERE id = ?', [req.params.id]);
+            const [users] = await db.query('SELECT * FROM usuario WHERE id = ?', [req.params.id]);
             const usuario = users[0];
 
             if (usuario) {
@@ -48,7 +48,7 @@ class UsuarioController {
     static async showByEmail(req, res) {
         try {
             const { email } = req.body;
-            const [users] = await db.query('SELECT * FROM Usuario WHERE correo = ?', [email]);
+            const [users] = await db.query('SELECT * FROM usuario WHERE correo = ?', [email]);
             const usuario = users[0];
 
             if (usuario) {
@@ -89,7 +89,7 @@ class UsuarioController {
             const finalPassword = hashedPassword || passwordField ? await bcrypt.hash(passwordField, 10) : undefined;
 
             const [result] = await db.query(`
-                UPDATE Usuario SET
+                UPDATE usuario SET
                     nombre = COALESCE(?, nombre),
                     cedula = COALESCE(?, cedula),
                     sexo = COALESCE(?, sexo),
@@ -122,7 +122,7 @@ class UsuarioController {
             ]);
 
             if (result.affectedRows > 0) {
-                const [users] = await db.query('SELECT * FROM Usuario WHERE id = ?', [id]);
+                const [users] = await db.query('SELECT * FROM usuario WHERE id = ?', [id]);
                 return res.json({
                     status: 200,
                     message: 'Usuario actualizado correctamente',
@@ -145,7 +145,7 @@ class UsuarioController {
 
     static async delete(req, res) {
         try {
-            const [result] = await db.query('DELETE FROM Usuario WHERE id = ?', [req.params.id]);
+            const [result] = await db.query('DELETE FROM usuario WHERE id = ?', [req.params.id]);
 
             if (result.affectedRows > 0) {
                 return res.json({
@@ -180,7 +180,7 @@ class UsuarioController {
 
         try {
             console.log(`[Push] Intentando actualizar token para usuario ${userId}: ${token}`);
-            await db.query('UPDATE Usuario SET push_token = ? WHERE id = ?', [token, userId]);
+            await db.query('UPDATE usuario SET push_token = ? WHERE id = ?', [token, userId]);
             return res.json({
                 status: 200,
                 message: 'Token de notificación actualizado correctamente'
