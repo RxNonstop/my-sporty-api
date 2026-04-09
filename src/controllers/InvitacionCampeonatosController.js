@@ -7,8 +7,8 @@ class InvitacionCampeonatosController {
         try {
             const [invitaciones] = await db.query(`
                 SELECT ic.*, u.nombre as de_usuario_nombre, c.nombre as campeonato_nombre 
-                FROM invitacioncampeonatos ic 
-                JOIN Usuario u ON ic.de_usuario_id = u.id 
+                FROM invitacion_campeonatos ic 
+                JOIN usuario u ON ic.de_usuario_id = u.id 
                 JOIN campeonato c ON ic.campeonato_id = c.id 
                 WHERE ic.para_usuario_id = ? AND ic.estado = 'pendiente' AND ic.tipo = 'invitacion'
             `, [req.user.id]);
@@ -25,11 +25,11 @@ class InvitacionCampeonatosController {
                 return res.status(400).json({ status: 400, message: 'Faltan campos' });
             }
 
-            const [existente] = await db.query('SELECT * FROM invitacioncampeonatos WHERE para_usuario_id = ? AND campeonato_id = ? AND estado = "pendiente"', [data.id_usuario, data.id_campeonato]);
+            const [existente] = await db.query('SELECT * FROM invitacion_campeonatos WHERE para_usuario_id = ? AND campeonato_id = ? AND estado = "pendiente"', [data.id_usuario, data.id_campeonato]);
             if (existente.length > 0) return res.status(409).json({ status: 409, message: 'La invitación ya existe', data: null });
 
             await db.query(`
-                INSERT INTO invitacioncampeonatos (campeonato_id, equipo_id, de_usuario_id, para_usuario_id, mensaje, estado, tipo, fecha_envio) 
+                INSERT INTO invitacion_campeonatos (campeonato_id, equipo_id, de_usuario_id, para_usuario_id, mensaje, estado, tipo, fecha_envio) 
                 VALUES (?, ?, ?, ?, ?, 'pendiente', 'invitacion', NOW())
             `, [data.id_campeonato, data.equipo_id, req.user.id, data.id_usuario, data.mensaje || null]);
 
@@ -54,29 +54,29 @@ class InvitacionCampeonatosController {
 
             await connection.beginTransaction();
 
-            const [invCheck] = await connection.query('SELECT * FROM invitacioncampeonatos WHERE id = ?', [id]);
+            const [invCheck] = await connection.query('SELECT * FROM invitacion_campeonatos WHERE id = ?', [id]);
             if (!invCheck[0]) {
                 await connection.rollback();
                 return res.status(404).json({ status: 404, message: 'No encontrado' });
             }
 
             if (estado === 'aceptado') {
-                const [miembroExistente] = await connection.query('SELECT * FROM miembroscampeonatos WHERE equipo_id = ? AND campeonato_id = ?', [invCheck[0].equipo_id, invCheck[0].campeonato_id]);
+                const [miembroExistente] = await connection.query('SELECT * FROM miembros_campeonatos WHERE equipo_id = ? AND campeonato_id = ?', [invCheck[0].equipo_id, invCheck[0].campeonato_id]);
                 if (miembroExistente.length > 0) {
-                    await connection.query('UPDATE miembroscampeonatos SET activo = 1 WHERE id = ?', [miembroExistente[0].id]);
+                    await connection.query('UPDATE miembros_campeonatos SET activo = 1 WHERE id = ?', [miembroExistente[0].id]);
                 } else {
-                    await connection.query('INSERT INTO miembroscampeonatos (campeonato_id, equipo_id, activo, fecha_ingreso) VALUES (?, ?, 1, NOW())', [invCheck[0].campeonato_id, invCheck[0].equipo_id]);
+                    await connection.query('INSERT INTO miembros_campeonatos (campeonato_id, equipo_id, activo, fecha_ingreso) VALUES (?, ?, 1, NOW())', [invCheck[0].campeonato_id, invCheck[0].equipo_id]);
                 }
 
                 // Check if championship is now full, and close inscriptions if so
-                const [campData] = await connection.query('SELECT numero_equipos FROM Campeonato WHERE id = ?', [invCheck[0].campeonato_id]);
-                const [countData] = await connection.query("SELECT COUNT(*) as total FROM miembroscampeonatos WHERE campeonato_id = ? AND activo = 1", [invCheck[0].campeonato_id]);
+                const [campData] = await connection.query('SELECT numero_equipos FROM campeonato WHERE id = ?', [invCheck[0].campeonato_id]);
+                const [countData] = await connection.query("SELECT COUNT(*) as total FROM miembros_campeonatos WHERE campeonato_id = ? AND activo = 1", [invCheck[0].campeonato_id]);
                 const maxEquipos = campData[0]?.numero_equipos;
                 if (maxEquipos != null && maxEquipos > 0 && countData[0].total >= maxEquipos) {
-                    await connection.query('UPDATE Campeonato SET inscripciones_abiertas = 0 WHERE id = ?', [invCheck[0].campeonato_id]);
+                    await connection.query('UPDATE campeonato SET inscripciones_abiertas = 0 WHERE id = ?', [invCheck[0].campeonato_id]);
                 }
 
-                await connection.query('DELETE FROM invitacioncampeonatos WHERE id = ?', [id]);
+                await connection.query('DELETE FROM invitacion_campeonatos WHERE id = ?', [id]);
 
                 // Regenerate fixture due to new team
                 await connection.commit(); // commit current changes first since regenerate creates its own transaction
@@ -84,7 +84,7 @@ class InvitacionCampeonatosController {
                 return res.json({ status: 200, message: 'Actualizado y fixture regenerado' });
             }
 
-            await connection.query('DELETE FROM invitacioncampeonatos WHERE id = ?', [id]);
+            await connection.query('DELETE FROM invitacion_campeonatos WHERE id = ?', [id]);
             
             await connection.commit();
             return res.json({ status: 200, message: 'Actualizado' });
@@ -98,7 +98,7 @@ class InvitacionCampeonatosController {
 
     static async delete(req, res) {
         try {
-            const [result] = await db.query('DELETE FROM invitacioncampeonatos WHERE id = ? AND para_usuario_id = ?', [req.params.id, req.user.id]);
+            const [result] = await db.query('DELETE FROM invitacion_campeonatos WHERE id = ? AND para_usuario_id = ?', [req.params.id, req.user.id]);
             if (result.affectedRows > 0) return res.json({ status: 200, message: 'Eliminado' });
             return res.status(404).json({ status: 404, message: 'No encontrado' });
         } catch (error) {
@@ -119,13 +119,13 @@ class InvitacionCampeonatosController {
             }
 
             // Check championship exists, is public, and has slots
-            const [camps] = await db.query('SELECT * FROM Campeonato WHERE id = ?', [campeonato_id]);
+            const [camps] = await db.query('SELECT * FROM campeonato WHERE id = ?', [campeonato_id]);
             const camp = camps[0];
             if (!camp) return res.status(404).json({ status: 404, message: 'Campeonato no encontrado' });
             if (camp.inscripciones_abiertas != 1) return res.status(409).json({ status: 409, message: 'Las inscripciones no están abiertas' });
 
             // VALIDATION: Sport match
-            const [equipos] = await db.query('SELECT * FROM Equipo WHERE id = ?', [equipo_id]);
+            const [equipos] = await db.query('SELECT * FROM equipo WHERE id = ?', [equipo_id]);
             const equipo = equipos[0];
             if (!equipo) return res.status(404).json({ status: 404, message: 'Equipo no encontrado' });
             if (equipo.deporte !== camp.deporte) {
@@ -134,9 +134,9 @@ class InvitacionCampeonatosController {
 
             // VALIDATION: User already in ANY inscribed team in this championship (as owner or member)
             const [alreadyInscribed] = await db.query(`
-                SELECT mc.id FROM miembroscampeonatos mc
+                SELECT mc.id FROM miembros_campeonatos mc
                 JOIN equipo eq ON mc.equipo_id = eq.id
-                LEFT JOIN miembrosequipo me ON eq.id = me.equipo_id
+                LEFT JOIN miembros_equipo me ON eq.id = me.equipo_id
                 WHERE mc.campeonato_id = ? 
                   AND (eq.propietario_id = ? OR (me.usuario_id = ? AND me.activo = 1)) 
                   AND mc.activo = 1
@@ -147,7 +147,7 @@ class InvitacionCampeonatosController {
 
             // VALIDATION: User already has any PENDING request for this championship (any of their owned teams)
             const [anyPending] = await db.query(`
-                SELECT ic.id FROM invitacioncampeonatos ic
+                SELECT ic.id FROM invitacion_campeonatos ic
                 JOIN equipo e ON ic.equipo_id = e.id
                 WHERE ic.campeonato_id = ? AND e.propietario_id = ? AND ic.estado = 'pendiente' AND ic.tipo = 'solicitud_union'
             `, [campeonato_id, req.user.id]);
@@ -155,13 +155,13 @@ class InvitacionCampeonatosController {
                 return res.status(409).json({ status: 409, message: 'Ya tienes una solicitud de unión pendiente para este campeonato.' });
             }
 
-            const [miembros] = await db.query("SELECT COUNT(*) as total FROM miembroscampeonatos WHERE campeonato_id = ? AND activo = 1", [campeonato_id]);
+            const [miembros] = await db.query("SELECT COUNT(*) as total FROM miembros_campeonatos WHERE campeonato_id = ? AND activo = 1", [campeonato_id]);
             if (miembros[0].total >= camp.numero_equipos) {
                 return res.status(409).json({ status: 409, message: 'No hay cupos disponibles' });
             }
 
             await db.query(`
-                INSERT INTO invitacioncampeonatos (campeonato_id, equipo_id, de_usuario_id, para_usuario_id, mensaje, estado, tipo, fecha_envio)
+                INSERT INTO invitacion_campeonatos (campeonato_id, equipo_id, de_usuario_id, para_usuario_id, mensaje, estado, tipo, fecha_envio)
                 VALUES (?, ?, ?, ?, ?, 'pendiente', 'solicitud_union', NOW())
             `, [campeonato_id, equipo_id, req.user.id, camp.propietario_id, req.body.mensaje || null]);
 
@@ -180,10 +180,10 @@ class InvitacionCampeonatosController {
         try {
             const [items] = await db.query(`
                 SELECT ic.*, u.nombre as de_usuario_nombre, e.nombre as equipo_nombre, c.nombre as campeonato_nombre
-                FROM invitacioncampeonatos ic
-                JOIN Usuario u ON ic.de_usuario_id = u.id
+                FROM invitacion_campeonatos ic
+                JOIN usuario u ON ic.de_usuario_id = u.id
                 JOIN equipo e ON ic.equipo_id = e.id
-                JOIN Campeonato c ON ic.campeonato_id = c.id
+                JOIN campeonato c ON ic.campeonato_id = c.id
                 WHERE ic.para_usuario_id = ? AND ic.estado = 'pendiente' AND ic.tipo = 'solicitud_union'
                 ORDER BY ic.fecha_envio DESC
             `, [req.user.id]);

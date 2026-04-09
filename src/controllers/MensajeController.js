@@ -11,8 +11,8 @@ exports.getHistorialAmigo = async (req, res) => {
 
         const [rows] = await db.query(`
             SELECT m.*, u.nombre as emisor_nombre
-            FROM Mensajes m
-            JOIN Usuario u ON m.emisor_id = u.id
+            FROM mensajes m
+            JOIN usuario u ON m.emisor_id = u.id
             WHERE (m.emisor_id = ? AND m.receptor_id = ?)
                OR (m.emisor_id = ? AND m.receptor_id = ?)
             ORDER BY m.fecha_envio DESC
@@ -41,8 +41,8 @@ exports.getHistorialEquipo = async (req, res) => {
 
         const [rows] = await db.query(`
             SELECT m.*, u.nombre as emisor_nombre, u.url_foto_perfil
-            FROM Mensajes m
-            JOIN Usuario u ON m.emisor_id = u.id
+            FROM mensajes m
+            JOIN usuario u ON m.emisor_id = u.id
             WHERE m.equipo_id = ?
             ORDER BY m.fecha_envio DESC
             LIMIT ? OFFSET ?
@@ -67,7 +67,7 @@ exports.getResumen = async (req, res) => {
                 CASE WHEN m.emisor_id = ? THEN m.receptor_id ELSE m.emisor_id END AS id,
                 SUM(CASE WHEN m.receptor_id = ? AND m.leido = 0 THEN 1 ELSE 0 END) as unread_count,
                 MAX(m.id) as last_msg_id
-            FROM Mensajes m
+            FROM mensajes m
             WHERE (m.emisor_id = ? AND m.receptor_id IS NOT NULL) 
                OR (m.receptor_id = ? AND m.emisor_id IS NOT NULL)
             GROUP BY id
@@ -78,12 +78,12 @@ exports.getResumen = async (req, res) => {
                 m.equipo_id as id,
                 SUM(CASE WHEN m.fecha_envio > IFNULL(ecl.ultima_lectura, '2000-01-01') AND m.emisor_id != ? THEN 1 ELSE 0 END) as unread_count,
                 MAX(m.id) as last_msg_id
-            FROM Mensajes m
-            LEFT JOIN EquipoChatLecturas ecl ON m.equipo_id = ecl.equipo_id AND ecl.usuario_id = ?
+            FROM mensajes m
+            LEFT JOIN equipo_chat_lecturas ecl ON m.equipo_id = ecl.equipo_id AND ecl.usuario_id = ?
             WHERE m.equipo_id IN (
-                SELECT id FROM Equipo WHERE propietario_id = ?
+                SELECT id FROM equipo WHERE propietario_id = ?
                 UNION
-                SELECT equipo_id FROM miembrosequipo WHERE usuario_id = ? AND activo = 1
+                SELECT equipo_id FROM miembros_equipo WHERE usuario_id = ? AND activo = 1
             )
             GROUP BY m.equipo_id
         `, [userId, userId, userId, userId]);
@@ -91,7 +91,7 @@ exports.getResumen = async (req, res) => {
         let resumenAmigos = {};
         for (const meta of amigosMensajes) {
             if (meta.last_msg_id) {
-                const [lastMsgRows] = await db.query('SELECT mensaje, fecha_envio FROM Mensajes WHERE id = ?', [meta.last_msg_id]);
+                const [lastMsgRows] = await db.query('SELECT mensaje, fecha_envio FROM mensajes WHERE id = ?', [meta.last_msg_id]);
                 resumenAmigos[meta.id] = {
                     unread_count: Number(meta.unread_count) || 0,
                     ultimo_mensaje: lastMsgRows[0] ? lastMsgRows[0].mensaje : null,
@@ -103,7 +103,7 @@ exports.getResumen = async (req, res) => {
         let resumenEquipos = {};
         for (const meta of equiposMensajes) {
             if (meta.last_msg_id) {
-                const [lastMsgRows] = await db.query('SELECT mensaje, fecha_envio FROM Mensajes WHERE id = ?', [meta.last_msg_id]);
+                const [lastMsgRows] = await db.query('SELECT mensaje, fecha_envio FROM mensajes WHERE id = ?', [meta.last_msg_id]);
                 resumenEquipos[meta.id] = {
                     unread_count: Number(meta.unread_count) || 0,
                     ultimo_mensaje: lastMsgRows[0] ? lastMsgRows[0].mensaje : null,
@@ -129,7 +129,7 @@ exports.marcarAmigoLeido = async (req, res) => {
     try {
         const userId = req.user.id;
         const amigoId = req.params.amigoId;
-        await db.query('UPDATE Mensajes SET leido = 1 WHERE emisor_id = ? AND receptor_id = ? AND leido = 0', [amigoId, userId]);
+        await db.query('UPDATE mensajes SET leido = 1 WHERE emisor_id = ? AND receptor_id = ? AND leido = 0', [amigoId, userId]);
         res.json({ error: false, message: 'Mensajes marcados' });
     } catch (err) {
         res.status(500).json({ error: true, message: 'Error al marcar leído' });
@@ -140,7 +140,7 @@ exports.marcarEquipoLeido = async (req, res) => {
     try {
         const userId = req.user.id;
         const equipoId = req.params.equipoId;
-        await db.query('INSERT INTO EquipoChatLecturas (usuario_id, equipo_id, ultima_lectura) VALUES (?, ?, NOW()) ON DUPLICATE KEY UPDATE ultima_lectura = NOW()', [userId, equipoId]);
+        await db.query('INSERT INTO equipo_chat_lecturas (usuario_id, equipo_id, ultima_lectura) VALUES (?, ?, NOW()) ON DUPLICATE KEY UPDATE ultima_lectura = NOW()', [userId, equipoId]);
         res.json({ error: false, message: 'Chat grupal marcado' });
     } catch (err) {
         res.status(500).json({ error: true, message: 'Error al marcar equipo' });

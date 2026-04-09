@@ -6,8 +6,8 @@ class SolicitudAmistadController {
         try {
             const [solicitudes] = await db.query(`
                 SELECT sa.*, u.nombre AS nombre_remitente
-                FROM SolicitudAmistad sa
-                JOIN Usuario u ON u.id = sa.de_usuario_id
+                FROM solicitud_amistad sa
+                JOIN usuario u ON u.id = sa.de_usuario_id
                 WHERE sa.para_usuario_id = ? AND sa.estado = 'pendiente'
                 ORDER BY sa.fecha_envio DESC
             `, [req.user.id]);
@@ -33,7 +33,7 @@ class SolicitudAmistadController {
 
         try {
             const [existente] = await db.query(`
-                SELECT * FROM SolicitudAmistad 
+                SELECT * FROM solicitud_amistad 
                 WHERE ((de_usuario_id = ? AND para_usuario_id = ?) 
                    OR (de_usuario_id = ? AND para_usuario_id = ?))
                   AND estado = 'pendiente'
@@ -44,7 +44,7 @@ class SolicitudAmistadController {
             }
 
             await db.query(`
-                INSERT INTO SolicitudAmistad (de_usuario_id, para_usuario_id, estado, fecha_envio) 
+                INSERT INTO solicitud_amistad (de_usuario_id, para_usuario_id, estado, fecha_envio) 
                 VALUES (?, ?, 'pendiente', NOW())
             `, [de, para]);
 
@@ -71,28 +71,28 @@ class SolicitudAmistadController {
             await connection.beginTransaction();
 
             const [updateResult] = await connection.query(`
-                UPDATE SolicitudAmistad
+                UPDATE solicitud_amistad
                 SET estado = ?, fecha_respuesta = NOW()
                 WHERE id = ? AND para_usuario_id = ?
             `, [data.estado, id, req.user.id]);
 
             if (updateResult.affectedRows > 0) {
                 if (data.estado === 'aceptado') {
-                    const [solicitudes] = await connection.query('SELECT de_usuario_id FROM SolicitudAmistad WHERE id = ?', [id]);
+                    const [solicitudes] = await connection.query('SELECT de_usuario_id FROM solicitud_amistad WHERE id = ?', [id]);
                     const deUsuarioId = solicitudes[0].de_usuario_id;
                     
                     const u1 = Math.min(req.user.id, deUsuarioId);
                     const u2 = Math.max(req.user.id, deUsuarioId);
 
-                    const [amistadExistente] = await connection.query('SELECT id FROM Amistad WHERE usuario1_id = ? AND usuario2_id = ?', [u1, u2]);
+                    const [amistadExistente] = await connection.query('SELECT id FROM amistad WHERE usuario1_id = ? AND usuario2_id = ?', [u1, u2]);
                     if (amistadExistente.length > 0) {
-                        await connection.query('UPDATE Amistad SET activo = 1 WHERE id = ?', [amistadExistente[0].id]);
+                        await connection.query('UPDATE amistad SET activo = 1 WHERE id = ?', [amistadExistente[0].id]);
                     } else {
-                        await connection.query('INSERT INTO Amistad (usuario1_id, usuario2_id) VALUES (?, ?)', [u1, u2]);
+                        await connection.query('INSERT INTO amistad (usuario1_id, usuario2_id) VALUES (?, ?)', [u1, u2]);
                     }
                 }
 
-                await connection.query('DELETE FROM SolicitudAmistad WHERE id = ?', [id]);
+                await connection.query('DELETE FROM solicitud_amistad WHERE id = ?', [id]);
                 await connection.commit();
 
                 return res.json({ status: 200, message: 'Solicitud procesada y eliminada correctamente', data: null });
@@ -112,7 +112,7 @@ class SolicitudAmistadController {
         const id = req.params.id;
         try {
             const [result] = await db.query(`
-                DELETE FROM SolicitudAmistad 
+                DELETE FROM solicitud_amistad 
                 WHERE id = ? AND (de_usuario_id = ? OR para_usuario_id = ?)
             `, [id, req.user.id, req.user.id]);
 
