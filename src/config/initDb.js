@@ -216,6 +216,7 @@ const tables = [
         equipo_visitante_id INT,
         puntos_local INT DEFAULT 0,
         puntos_visitante INT DEFAULT 0,
+        jornada INT DEFAULT 1,
         estado ENUM('programado', 'en_curso', 'finalizado', 'cancelado') DEFAULT 'programado',
         partido_siguiente_id INT DEFAULT NULL,
         actualizado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
