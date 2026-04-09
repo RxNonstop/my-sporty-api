@@ -25,7 +25,7 @@ class InvitacionCampeonatosController {
                 return res.status(400).json({ status: 400, message: 'Faltan campos' });
             }
 
-            const [existente] = await db.query('SELECT * FROM invitacion_campeonatos WHERE para_usuario_id = ? AND campeonato_id = ? AND estado = "pendiente"', [data.id_usuario, data.id_campeonato]);
+            const [existente] = await db.query("SELECT * FROM invitacion_campeonatos WHERE para_usuario_id = ? AND campeonato_id = ? AND estado = 'pendiente'", [data.id_usuario, data.id_campeonato]);
             if (existente.length > 0) return res.status(409).json({ status: 409, message: 'La invitación ya existe', data: null });
 
             await db.query(`
