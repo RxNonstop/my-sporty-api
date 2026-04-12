@@ -13,9 +13,15 @@ let expo = new Expo();
 exports.enviarPushNotification = async (usuarioId, title, body, data = {}) => {
     try {
         // Obtener el push_token del usuario
-        const [rows] = await db.query('SELECT push_token FROM usuario WHERE id = ?', [usuarioId]);
+        let rows;
+        try {
+            [rows] = await db.query('SELECT push_token FROM usuario WHERE id = ?', [usuarioId]);
+        } catch (dbErr) {
+            console.error('[Push] Error al consultar push_token (posible columna faltante):', dbErr.message);
+            return;
+        }
         
-        if (rows.length === 0 || !rows[0].push_token) {
+        if (!rows || rows.length === 0 || !rows[0].push_token) {
             return; // El usuario no tiene token registrado
         }
 

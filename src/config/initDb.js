@@ -298,6 +298,10 @@ async function initDb() {
     {
       name: 'Add creado_en to partidos',
       query: 'ALTER TABLE partidos ADD COLUMN IF NOT EXISTS creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP'
+    },
+    {
+      name: 'Add push_token to usuario',
+      query: 'ALTER TABLE usuario ADD COLUMN IF NOT EXISTS push_token VARCHAR(255) NULL'
     }
   ];
 

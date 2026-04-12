@@ -25,7 +25,7 @@ class InvitacionCampeonatosController {
                 return res.status(400).json({ status: 400, message: 'Faltan campos' });
             }
 
-            const [existente] = await db.query('SELECT * FROM invitacion_campeonatos WHERE para_usuario_id = ? AND campeonato_id = ? AND estado = "pendiente"', [data.id_usuario, data.id_campeonato]);
+            const [existente] = await db.query("SELECT * FROM invitacion_campeonatos WHERE para_usuario_id = ? AND campeonato_id = ? AND estado = 'pendiente'", [data.id_usuario, data.id_campeonato]);
             if (existente.length > 0) return res.status(409).json({ status: 409, message: 'La invitación ya existe', data: null });
 
             await db.query(`
@@ -37,7 +37,8 @@ class InvitacionCampeonatosController {
 
             return res.status(201).json({ status: 201, message: 'Creado' });
         } catch (error) {
-            return res.status(500).json({ status: 500, message: 'Error', details: error.message });
+            console.error('[Error InvitacionCampeonatos store]', error);
+            return res.status(500).json({ status: 500, message: 'Error', details: error.message, code: error.code });
         }
     }
 
@@ -90,7 +91,8 @@ class InvitacionCampeonatosController {
             return res.json({ status: 200, message: 'Actualizado' });
         } catch (error) {
             await connection.rollback();
-            return res.status(500).json({ status: 500, message: 'Error', details: error.message });
+            console.error('[Error update InvitacionCampeonatos]', error);
+            return res.status(500).json({ status: 500, message: 'Error', details: error.message, code: error.code });
         } finally {
             connection.release();
         }
@@ -169,7 +171,8 @@ class InvitacionCampeonatosController {
 
             return res.status(201).json({ status: 201, message: 'Solicitud de unión enviada' });
         } catch (error) {
-            return res.status(500).json({ status: 500, message: 'Error', details: error.message });
+            console.error('[Error storeSolicitudUnion]', error);
+            return res.status(500).json({ status: 500, message: 'Error', details: error.message, code: error.code });
         }
     }
 
