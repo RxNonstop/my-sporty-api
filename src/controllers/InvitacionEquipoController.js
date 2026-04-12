@@ -27,7 +27,7 @@ class InvitacionEquipoController {
                 return res.status(400).json({ status: 400, message: 'No puedes invitarte a ti mismo' });
             }
 
-            const [existente] = await db.query('SELECT * FROM invitacion_equipo WHERE para_usuario_id = ? AND equipo_id = ? AND estado = "pendiente"', [data.para_usuario_id, data.equipo_id]);
+            const [existente] = await db.query("SELECT * FROM invitacion_equipo WHERE para_usuario_id = ? AND equipo_id = ? AND estado = 'pendiente'", [data.para_usuario_id, data.equipo_id]);
             if (existente.length > 0) return res.status(409).json({ status: 409, message: 'La invitación ya existe', data: null });
 
             await db.query(`
