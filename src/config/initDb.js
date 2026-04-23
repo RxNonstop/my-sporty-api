@@ -185,9 +185,6 @@ const tables = [
         fecha_inicio DATE,
         fecha_fin DATE,
         numero_equipos INT,
-        numero_grupos INT,
-        tamano_grupo INT,
-        clasificados_por_grupo INT,
         actualizado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         FOREIGN KEY (campeonato_id) REFERENCES campeonato(id) ON DELETE CASCADE
       ) ENGINE=InnoDB;
@@ -301,10 +298,6 @@ async function initDb() {
     {
       name: 'Add creado_en to partidos',
       query: 'ALTER TABLE partidos ADD COLUMN IF NOT EXISTS creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP'
-    },
-    {
-      name: 'Add grupo_numero to partidos',
-      query: 'ALTER TABLE partidos ADD COLUMN IF NOT EXISTS grupo_numero INT DEFAULT NULL'
     },
     {
       name: 'Add push_token to usuario',
