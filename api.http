@@ -1,0 +1,139 @@
+### Get all sports
+GET http://localhost:3000/api/sports
+Content-Type: application/json
+
+### Get sport by ID
+GET http://localhost:3000/api/sports/1
+Content-Type: application/json
+
+### Create a new sport
+POST http://localhost:3000/api/sports
+Content-Type: application/json
+
+{
+  "name": "Football",
+  "description": "Team sport"
+}
+
+### Update a sport
+PUT http://localhost:3000/api/sports/1
+Content-Type: application/json
+
+{
+  "name": "Updated Football",
+  "description": "Updated description"
+}
+
+### Delete a sport
+DELETE http://localhost:3000/api/sports/1
+Content-Type: application/json
+
+### Get all athletes
+GET http://localhost:3000/api/athletes
+Content-Type: application/json
+
+### Get athlete by ID
+GET http://localhost:3000/api/athletes/1
+Content-Type: application/json
+
+### Create a new athlete
+POST http://localhost:3000/api/athletes
+Content-Type: application/json
+
+{
+  "name": "John Doe",
+  "sport_id": 1,
+  "age": 25
+}
+
+### Update an athlete
+PUT http://localhost:3000/api/athletes/1
+Content-Type: application/json
+
+{
+  "name": "John Updated",
+  "age": 26
+}
+
+### Delete an athlete
+DELETE http://localhost:3000/api/athletes/1
+Content-Type: application/json
+
+### Get all teams
+GET http://localhost:3000/api/teams
+Content-Type: application/json
+
+### Get team by ID
+GET http://localhost:3000/api/teams/1
+Content-Type: application/json
+
+### Create a new team
+POST http://localhost:3000/api/teams
+Content-Type: application/json
+
+{
+  "name": "Champions FC",
+  "sport_id": 1
+}
+
+### Update a team
+PUT http://localhost:3000/api/teams/1
+Content-Type: application/json
+
+{
+  "name": "Updated Champions FC"
+}
+
+### Delete a team
+DELETE http://localhost:3000/api/teams/1
+Content-Type: application/json
+
+
+### Authenticate user
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "password123"
+}
+
+### Register a new user
+POST http://localhost:3000/api/auth/register
+Content-Type: application/json
+
+{
+  "nombre": "elians gomez",
+  "cedula": "1010101001",
+  "password": "12345678",
+  "sexo": "M",
+  "fecha_nacimiento": "1990-01-01",
+  "correo": "eliansgomez@mail.com"
+}
+
+### Register a new user 2
+POST http://localhost:3000/api/auth/register
+Content-Type: application/json
+
+{
+  "nombre": "maria lopez",
+  "cedula": "2020202002",
+  "password": "12345678",
+  "sexo": "F",
+  "fecha_nacimiento": "1992-05-15",
+  "correo": "marialopez@mail.com"
+}
+
+### Register a new user 3
+POST http://localhost:3000/api/auth/register
+Content-Type: application/json
+
+{
+  "nombre": "carlos rodriguez",
+  "cedula": "3030303003",
+  "password": "12345678",
+  "sexo": "M",
+  "fecha_nacimiento": "1988-12-10",
+  "correo": "carlosrodriguez@mail.com"
+}
+

@@ -5,10 +5,163 @@ class EstadisticaController {
     try {
       const fase_id = req.params.fase_id;
 
+      // Get phase information to check if it's a group phase
+      const [faseInfo] = await db.query(
+        `SELECT tipo, numero_grupos FROM fases WHERE id = ?`,
+        [fase_id]
+      );
+
+      const isGroupPhase = faseInfo[0] && (faseInfo[0].tipo === 'fase_grupos' || faseInfo[0].tipo === 'grupos');
+      const numeroGrupos = faseInfo[0]?.numero_grupos || 1;
+
+      if (isGroupPhase && numeroGrupos > 1) {
+        // Get positions by groups
+        const grupos = [];
+
+        for (let grupoNum = 1; grupoNum <= numeroGrupos; grupoNum++) {
+          // Get finalized matches for this specific group
+          const [partidos] = await db.query(
+            `
+                    SELECT * FROM partidos
+                    WHERE fase_id = ? AND estado = 'finalizado' AND grupo_numero = ?
+                `,
+            [fase_id, grupoNum],
+          );
+
+          // Get all teams in this group - for group phases, get teams from championship
+          const [equiposDb] = await db.query(
+            `
+                    SELECT DISTINCT e.id, e.nombre
+                    FROM equipo e
+                    JOIN miembros_campeonatos mc ON e.id = mc.equipo_id
+                    JOIN fases f ON mc.campeonato_id = f.campeonato_id
+                    WHERE f.id = ? AND mc.activo = 1
+                `,
+            [fase_id],
+          );
+
+          // For group phases, we need to assign teams to groups
+          // Since we don't have a direct relationship, we'll simulate based on existing matches
+          const equiposEnGrupos = {};
+          const [partidosProgramados] = await db.query(
+            `
+                    SELECT DISTINCT grupo_numero, equipo_local_id, equipo_visitante_id
+                    FROM partidos
+                    WHERE fase_id = ? AND grupo_numero IS NOT NULL
+                `,
+            [fase_id],
+          );
+
+          // Build group assignments from existing matches
+          partidosProgramados.forEach(p => {
+            if (!equiposEnGrupos[p.grupo_numero]) {
+              equiposEnGrupos[p.grupo_numero] = new Set();
+            }
+            if (p.equipo_local_id) equiposEnGrupos[p.grupo_numero].add(p.equipo_local_id);
+            if (p.equipo_visitante_id) equiposEnGrupos[p.grupo_numero].add(p.equipo_visitante_id);
+          });
+
+          // Filter teams for this specific group
+          const equiposGrupo = equiposDb.filter(e =>
+            equiposEnGrupos[grupoNum] && equiposEnGrupos[grupoNum].has(e.id)
+          );
+
+          const stats = {};
+          console.log(`[Stats DEBUG] Grupo ${grupoNum} - Fase ${fase_id}: ${partidos.length} partidos finalizados, ${equiposGrupo.length} equipos encontrados.`);
+
+          equiposGrupo.forEach((e) => {
+            stats[e.id] = {
+              equipo_id: e.id,
+              nombre: e.nombre,
+              pj: 0,
+              pg: 0,
+              pe: 0,
+              pp: 0,
+              gf: 0,
+              gc: 0,
+              dg: 0,
+              pts: 0,
+            };
+          });
+
+          // Calculate stats for each match in this group
+          partidos.forEach((p) => {
+            const local = p.equipo_local_id;
+            const visitante = p.equipo_visitante_id;
+            const gl = parseInt(p.puntos_local || 0);
+            const gv = parseInt(p.puntos_visitante || 0);
+
+            if (local && stats[local]) {
+              stats[local].pj++;
+              stats[local].gf += gl;
+              stats[local].gc += gv;
+              stats[local].dg += gl - gv;
+
+              if (visitante) {
+                if (gl > gv) {
+                  stats[local].pg++;
+                  stats[local].pts += 3;
+                } else if (gl === gv) {
+                  stats[local].pe++;
+                  stats[local].pts += 1;
+                } else {
+                  stats[local].pp++;
+                }
+              } else {
+                stats[local].pg++;
+                stats[local].pts += 3;
+              }
+            }
+
+            if (visitante && stats[visitante]) {
+              stats[visitante].pj++;
+              stats[visitante].gf += gv;
+              stats[visitante].gc += gl;
+              stats[visitante].dg += gv - gl;
+
+              if (local) {
+                if (gv > gl) {
+                  stats[visitante].pg++;
+                  stats[visitante].pts += 3;
+                } else if (gv === gl) {
+                  stats[visitante].pe++;
+                  stats[visitante].pts += 1;
+                } else {
+                  stats[visitante].pp++;
+                }
+              } else {
+                stats[visitante].pg++;
+                stats[visitante].pts += 3;
+              }
+            }
+          });
+
+          // Convert to array and sort
+          const tablaGrupo = Object.values(stats).sort((a, b) => {
+            if (b.pts !== a.pts) return b.pts - a.pts;
+            if (b.dg !== a.dg) return b.dg - a.dg;
+            return b.gf - a.gf;
+          });
+
+          grupos.push({
+            grupo: grupoNum,
+            nombre: `Grupo ${grupoNum}`,
+            posiciones: tablaGrupo
+          });
+        }
+
+        console.log(`[Stats DEBUG] Tablas de grupos enviadas al cliente:`, JSON.stringify(grupos));
+        return res.json({
+          status: 200,
+          message: "Tablas de posiciones por grupos",
+          data: grupos,
+        });
+      }
+
       // Get all finalized matches for this phase
       const [partidos] = await db.query(
         `
-                SELECT * FROM partidos 
+                SELECT * FROM partidos
                 WHERE fase_id = ? AND estado = 'finalizado'
             `,
         [fase_id],
@@ -19,14 +172,15 @@ class EstadisticaController {
 
       const [equiposDb] = await db.query(
         `
-                SELECT DISTINCT e.id, e.nombre 
+                SELECT DISTINCT e.id, e.nombre
                 FROM equipo e
-                JOIN partidos p ON (e.id = p.equipo_local_id OR e.id = p.equipo_visitante_id)
-                WHERE p.fase_id = ?
+                JOIN miembros_campeonatos mc ON e.id = mc.equipo_id
+                JOIN fases f ON mc.campeonato_id = f.campeonato_id
+                WHERE f.id = ? AND mc.activo = 1
             `,
         [fase_id],
       );
-      
+
       console.log(`[Stats DEBUG] Fase ${fase_id}: ${partidos.length} partidos finalizados, ${equiposDb.length} equipos encontrados.`);
 
       equiposDb.forEach((e) => {
