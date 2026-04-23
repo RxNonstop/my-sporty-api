@@ -36,14 +36,23 @@ class FixtureService {
                     // For logic simplicity without complex progression simulated yet: 
                     // currentTeams = advance logic...
                 } else if (tipoFase === 'fase_grupos' || tipoFase === 'grupos') {
-                    const tamanoGrupo = fase.numero_equipos || 4; 
-                    const matches = this.generateGroups(currentTeams, tamanoGrupo);
+                    // Validar que tengamos los campos necesarios para fases de grupos
+                    if (!fase.numero_grupos || !fase.tamano_grupo) {
+                        throw new Error(`Fase de grupos ${fase.nombre} requiere numero_grupos y tamano_grupo`);
+                    }
+                    
+                    const matches = this.generateGroups(currentTeams, fase.numero_grupos, fase.tamano_grupo);
                     for (const match of matches) {
                         await connection.query(`
-                            INSERT INTO partidos (fase_id, equipo_local_id, equipo_visitante_id, jornada, estado) 
-                            VALUES (?, ?, ?, ?, 'programado')
-                        `, [fase.id, match.local, match.visitante, match.jornada]);
+                            INSERT INTO partidos (fase_id, equipo_local_id, equipo_visitante_id, jornada, estado, grupo_numero) 
+                            VALUES (?, ?, ?, ?, 'programado', ?)
+                        `, [fase.id, match.local, match.visitante, match.jornada, match.grupo]);
                     }
+                    
+                    // Calcular equipos que pasan a la siguiente fase
+                    const equiposQuePasan = fase.clasificados_por_grupo ? fase.numero_grupos * fase.clasificados_por_grupo : fase.numero_grupos;
+                    // Simplificación: tomar los primeros N equipos (en un sistema real, esto se basaría en resultados)
+                    currentTeams = currentTeams.slice(0, Math.min(equiposQuePasan, currentTeams.length));
                 }
             }
 
@@ -160,17 +169,36 @@ class FixtureService {
         }
     }
 
-    static generateGroups(teams, tamanoGrupo) {
+    static generateGroups(teams, numeroGrupos, tamanoGrupo) {
         const matches = [];
-        let groupCount = 1;
-        for (let i = 0; i < teams.length; i += tamanoGrupo) {
-            const groupTeams = teams.slice(i, i + tamanoGrupo);
-            const groupMatches = this.generateRoundRobin(groupTeams);
-            // Adjust jornada to visually distinguish groups if needed, 
-            // but normally they play simultaneously.
-            matches.push(...groupMatches);
-            groupCount++;
+        
+        // Distribuir equipos en grupos
+        const groups = [];
+        for (let i = 0; i < numeroGrupos; i++) {
+            groups.push([]);
         }
+        
+        // Distribución round-robin de equipos en grupos
+        teams.forEach((team, index) => {
+            const groupIndex = index % numeroGrupos;
+            if (groups[groupIndex].length < tamanoGrupo) {
+                groups[groupIndex].push(team);
+            }
+        });
+        
+        // Generar partidos para cada grupo
+        groups.forEach((groupTeams, groupIndex) => {
+            if (groupTeams.length >= 2) {
+                const groupMatches = this.generateRoundRobin(groupTeams);
+                // Agregar información del grupo a cada partido
+                const matchesWithGroup = groupMatches.map(match => ({
+                    ...match,
+                    grupo: groupIndex + 1 // Grupos numerados desde 1
+                }));
+                matches.push(...matchesWithGroup);
+            }
+        });
+        
         return matches;
     }
 }
