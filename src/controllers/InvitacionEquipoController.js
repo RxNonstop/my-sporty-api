@@ -76,8 +76,11 @@ class InvitacionEquipoController {
             await connection.commit();
             return res.json({ status: 200, message: 'Invitación procesada', data: null });
         } catch (error) {
-            await connection.rollback();
-            return res.json(500).json({ status: 500, message: 'Error', data: {detalles: error.message} });
+            if (!res.headersSent) {
+                if (connection) await connection.rollback();
+                return res.status(500).json({ status: 500, message: 'Error interno', data: { detalles: error.message } });
+            }
+            console.error("Error después de enviar headers:", error.message);
         } finally {
             connection.release();
         }
