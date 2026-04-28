@@ -63,6 +63,7 @@ class InvitacionEquipoController {
             }
 
             if (estado === 'aceptado') {
+                console.log('Aceptando invitación para usuario', req.user.id, 'al equipo', invCheck[0].equipo_id);
                 const [miembroExistente] = await connection.query('SELECT * FROM miembros_equipo WHERE usuario_id = ? AND equipo_id = ?', [req.user.id, invCheck[0].equipo_id]);
                 if (miembroExistente.length > 0) {
                     await connection.query('UPDATE miembros_equipo SET activo = 1 WHERE id = ?', [miembroExistente[0].id]);
