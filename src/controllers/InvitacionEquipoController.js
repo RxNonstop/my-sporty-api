@@ -77,7 +77,7 @@ class InvitacionEquipoController {
             return res.json({ status: 200, message: 'Invitación procesada', data: null });
         } catch (error) {
             await connection.rollback();
-            return res.status(500).json({ status: 500, message: 'Error', data: error.message });
+            return res.status(500).json({ status: 500, message: 'Error', data: {detalles: error.message} });
         } finally {
             connection.release();
         }
