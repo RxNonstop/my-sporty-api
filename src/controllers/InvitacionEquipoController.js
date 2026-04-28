@@ -81,7 +81,8 @@ class InvitacionEquipoController {
             return res.status(500).json({ 
                 status: 500, 
                 message: 'Error al Aceptar', 
-                sqlError: error.sqlMessage || error.message 
+                sqlError: error.sqlMessage || error.message,
+                code: error.code
             });
         } finally {
             connection.release();
