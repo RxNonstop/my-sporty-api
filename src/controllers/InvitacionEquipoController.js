@@ -68,7 +68,7 @@ class InvitacionEquipoController {
                     await connection.query('UPDATE miembros_equipo SET activo = 1 WHERE id = ?', [miembroExistente[0].id]);
                 } else {
                     console.log('Aceptando invitación para usuario', req.user.id, 'al equipo', invCheck[0].equipo_id);
-                    await connection.query('INSERT INTO miembros_equipo (usuario_id, equipo_id, rol_usuario, activo) VALUES (?, ?, "jugador", 1)', [req.user.id, invCheck[0].equipo_id]);
+                    await connection.query("INSERT INTO miembros_equipo (usuario_id, equipo_id, rol_usuario, activo) VALUES (?, ?, 'jugador', 1)", [req.user.id, invCheck[0].equipo_id]);
                 }
             }
 
