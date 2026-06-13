@@ -251,19 +251,21 @@ exports.getChatMembers = async (req, res) => {
             `, [id, id]);
             return res.json({ error: false, data: rows });
         } else if (type === 'campeonato') {
-            // Get championship organizer + team owners
+            // Get championship organizer + team owners uniquely
             const [rows] = await db.query(`
-                SELECT u.id, u.nombre, u.url_foto_perfil, 'organizador' as rol
-                FROM campeonato c
-                JOIN usuario u ON c.propietario_id = u.id
-                WHERE c.id = ?
-                UNION
-                SELECT u.id, u.nombre, u.url_foto_perfil, 'dueño equipo' as rol
-                FROM miembros_campeonatos mc
-                JOIN equipo e ON mc.equipo_id = e.id
-                JOIN usuario u ON e.propietario_id = u.id
-                WHERE mc.campeonato_id = ? AND mc.activo = 1
-            `, [id, id]);
+                SELECT u.id, u.nombre, u.url_foto_perfil, 
+                       CASE WHEN c.propietario_id = u.id THEN 'organizador' ELSE 'dueño equipo' END as rol
+                FROM (
+                    SELECT propietario_id as uid FROM campeonato WHERE id = ?
+                    UNION
+                    SELECT e.propietario_id as uid 
+                    FROM miembros_campeonatos mc
+                    JOIN equipo e ON mc.equipo_id = e.id
+                    WHERE mc.campeonato_id = ? AND mc.activo = 1
+                ) unique_users
+                JOIN usuario u ON unique_users.uid = u.id
+                LEFT JOIN campeonato c ON c.id = ?
+            `, [id, id, id]);
             return res.json({ error: false, data: rows });
         }
 
