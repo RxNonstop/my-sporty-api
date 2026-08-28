@@ -95,25 +95,31 @@ class EquipoController {
             const campeonatoId = req.params.campeonato_id;
 
             const [equipos] = await db.query(`
-                SELECT DISTINCT e.* FROM equipo e
-                INNER JOIN amistad a ON (
+                SELECT DISTINCT 
+                    e.*, 
+                    u.nombre as propietario_nombre 
+                FROM equipo e
+                JOIN usuario u ON e.propietario_id = u.id
+                JOIN campeonato c ON c.id = ?
+                LEFT JOIN amistad a ON (
                     (a.usuario1_id = ? AND e.propietario_id = a.usuario2_id) OR
                     (a.usuario2_id = ? AND e.propietario_id = a.usuario1_id)
                 )
-                WHERE a.activo = 1
+                WHERE LOWER(e.deporte) = LOWER(c.deporte)
+                AND (e.propietario_id = ? OR a.activo = 1)
                 AND e.id NOT IN (
-                    SELECT equipo_id FROM miembros_campeonatos WHERE campeonato_id = ?
+                    SELECT equipo_id FROM miembros_campeonatos WHERE campeonato_id = ? AND activo = 1
                 )
                 AND e.id NOT IN (
                     SELECT equipo_id FROM invitacion_campeonatos WHERE campeonato_id = ? AND estado = 'pendiente'
                 )
-            `, [usuarioId, usuarioId, campeonatoId, campeonatoId]);
+            `, [campeonatoId, usuarioId, usuarioId, usuarioId, campeonatoId, campeonatoId]);
 
             if (equipos.length === 0) {
-                return res.status(404).json({ status: 404, message: 'No se encontraron equipos de amigos para invitar', data: null });
+                return res.status(404).json({ status: 404, message: 'No se encontraron equipos para invitar', data: [] });
             }
 
-            return res.json({ status: 200, message: 'Equipos de amigos obtenidos', data: equipos });
+            return res.json({ status: 200, message: 'Equipos obtenidos', data: equipos });
         } catch (error) {
             return res.status(500).json({ status: 500, message: 'Error al obtener equipos', data: { detalles: error.message } });
         }

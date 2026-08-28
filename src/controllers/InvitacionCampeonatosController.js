@@ -25,6 +25,57 @@ class InvitacionCampeonatosController {
                 return res.status(400).json({ status: 400, message: 'Faltan campos' });
             }
 
+            // Si el equipo es del propio usuario organizador, inscribir directamente
+            if (data.id_usuario == req.user.id) {
+                const connection = await db.getConnection();
+                try {
+                    await connection.beginTransaction();
+
+                    const [miembroExistente] = await connection.query('SELECT * FROM miembros_campeonatos WHERE equipo_id = ? AND campeonato_id = ?', [data.equipo_id, data.id_campeonato]);
+                    if (miembroExistente.length > 0) {
+                        await connection.query('UPDATE miembros_campeonatos SET activo = 1 WHERE id = ?', [miembroExistente[0].id]);
+                    } else {
+                        await connection.query('INSERT INTO miembros_campeonatos (campeonato_id, equipo_id, activo, fecha_ingreso) VALUES (?, ?, 1, NOW())', [data.id_campeonato, data.equipo_id]);
+                    }
+
+                    const [campData] = await connection.query('SELECT numero_equipos, tipo_actividad FROM campeonato WHERE id = ?', [data.id_campeonato]);
+                    const [countData] = await connection.query("SELECT COUNT(*) as total FROM miembros_campeonatos WHERE campeonato_id = ? AND activo = 1", [data.id_campeonato]);
+                    const maxEquipos = campData[0]?.numero_equipos;
+
+                    if (campData[0]?.tipo_actividad === 'partido') {
+                        const [partidos] = await connection.query(`
+                            SELECT p.id, p.equipo_local_id, p.equipo_visitante_id FROM partidos p 
+                            JOIN fases f ON p.fase_id = f.id 
+                            WHERE f.campeonato_id = ?
+                        `, [data.id_campeonato]);
+                        if (partidos.length > 0) {
+                            if (!partidos[0].equipo_local_id) {
+                                await connection.query('UPDATE partidos SET equipo_local_id = ? WHERE id = ?', [data.equipo_id, partidos[0].id]);
+                            } else if (!partidos[0].equipo_visitante_id && partidos[0].equipo_local_id != data.equipo_id) {
+                                await connection.query('UPDATE partidos SET equipo_visitante_id = ? WHERE id = ?', [data.equipo_id, partidos[0].id]);
+                            }
+                        }
+                        if (countData[0].total >= 2) {
+                            await connection.query('UPDATE campeonato SET inscripciones_abiertas = 0 WHERE id = ?', [data.id_campeonato]);
+                        }
+                        await connection.commit();
+                        return res.status(201).json({ status: 201, message: 'Equipo inscrito directamente', inscrito: true });
+                    } else {
+                        if (maxEquipos != null && maxEquipos > 0 && countData[0].total >= maxEquipos) {
+                            await connection.query('UPDATE campeonato SET inscripciones_abiertas = 0 WHERE id = ?', [data.id_campeonato]);
+                        }
+                        await connection.commit();
+                        await FixtureService.regenerate(data.id_campeonato);
+                        return res.status(201).json({ status: 201, message: 'Equipo inscrito directamente', inscrito: true });
+                    }
+                } catch (err) {
+                    await connection.rollback();
+                    throw err;
+                } finally {
+                    connection.release();
+                }
+            }
+
             const [existente] = await db.query("SELECT * FROM invitacion_campeonatos WHERE para_usuario_id = ? AND campeonato_id = ? AND estado = 'pendiente'", [data.id_usuario, data.id_campeonato]);
             if (existente.length > 0) return res.status(409).json({ status: 409, message: 'La invitación ya existe', data: null });
 
@@ -35,7 +86,7 @@ class InvitacionCampeonatosController {
 
             socketManager.notifyUser(data.id_usuario, 'nueva_notificacion');
 
-            return res.status(201).json({ status: 201, message: 'Creado' });
+            return res.status(201).json({ status: 201, message: 'Creado', inscrito: false });
         } catch (error) {
             console.error('[Error InvitacionCampeonatos store]', error);
             return res.status(500).json({ status: 500, message: 'Error', details: error.message, code: error.code });
